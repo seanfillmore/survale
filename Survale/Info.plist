@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qdm9waHNueWxpZWFjemVzd3hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1NTU0NDAsImV4cCI6MjA3NjEzMTQ0MH0.nNEwMTyPYXLfGHcU7pPjqAou-wmI3z1MoLKbsCRQ1eI
+</string>
+	<key>SUPABASE_URL</key>
+	<string>https://njvophsnylieaczeswxh.supabase.co</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+</dict>
+</plist>

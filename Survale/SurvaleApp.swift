@@ -9,9 +9,19 @@ import SwiftUI
 
 @main
 struct SurvaleApp: App {
+    @StateObject private var appState = AppState()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environmentObject(appState)
+                .task {
+                    SupabaseAuthService.shared.setAppState(appState)
+                    SupabaseAuthService.shared.startAuthListener { isAuthed in
+                        appState.isAuthenticated = isAuthed
+                    }
+                }
         }
     }
 }
+

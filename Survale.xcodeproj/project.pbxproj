@@ -6,13 +6,101 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
+		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
+		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
+		4532AE432EA5DDCF00649F04 /* ActiveOperationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE422EA5DDCF00649F04 /* ActiveOperationDetailView.swift */; };
+		4532AE452EA69C1600649F04 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE442EA69C1600649F04 /* CameraView.swift */; };
+		45B42B1B2EA2E13D00DF32CD /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B142EA2E13D00DF32CD /* LoginView.swift */; };
+		45B42B1C2EA2E13D00DF32CD /* OperationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B172EA2E13D00DF32CD /* OperationsView.swift */; };
+		45B42B1D2EA2E13D00DF32CD /* ReplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B182EA2E13D00DF32CD /* ReplayView.swift */; };
+		45B42B1E2EA2E13D00DF32CD /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B192EA2E13D00DF32CD /* RootView.swift */; };
+		45B42B1F2EA2E13D00DF32CD /* MainTabsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B152EA2E13D00DF32CD /* MainTabsView.swift */; };
+		45B42B202EA2E13D00DF32CD /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B132EA2E13D00DF32CD /* ChatView.swift */; };
+		45B42B212EA2E13D00DF32CD /* MapOperationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B162EA2E13D00DF32CD /* MapOperationView.swift */; };
+		45B42B222EA2E13D00DF32CD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B1A2EA2E13D00DF32CD /* SettingsView.swift */; };
+		45B42B252EA2E8E900DF32CD /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B242EA2E8E400DF32CD /* AppState.swift */; };
+		45B42B2A2EA2F8D600DF32CD /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 45B42B292EA2F8D600DF32CD /* Auth */; };
+		45B42B2C2EA2F8D600DF32CD /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 45B42B2B2EA2F8D600DF32CD /* Functions */; };
+		45B42B2E2EA2F8D600DF32CD /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 45B42B2D2EA2F8D600DF32CD /* PostgREST */; };
+		45B42B302EA2F8D600DF32CD /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 45B42B2F2EA2F8D600DF32CD /* Realtime */; };
+		45B42B322EA2F8D600DF32CD /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 45B42B312EA2F8D600DF32CD /* Storage */; };
+		45B42B362EA2FAB000DF32CD /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B352EA2FAAD00DF32CD /* Secrets.swift */; };
+		45B42B382EA2FAC700DF32CD /* SupabaseAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B372EA2FAC400DF32CD /* SupabaseAuthService.swift */; };
+		45B42B3B2EA2FDD900DF32CD /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 45B42B3A2EA2FDD900DF32CD /* Supabase */; };
+		45B42B3D2EA303ED00DF32CD /* SignUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B3C2EA303E800DF32CD /* SignUpView.swift */; };
+		45B42B3F2EA3041100DF32CD /* ResetPasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B3E2EA3040A00DF32CD /* ResetPasswordView.swift */; };
+		45B42B422EA30CB700DF32CD /* LocationServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B412EA30CB000DF32CD /* LocationServices.swift */; };
+		45B42B462EA3221500DF32CD /* OperationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B452EA3221000DF32CD /* OperationStore.swift */; };
+		45B42B482EA3224D00DF32CD /* CreateOperationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B472EA3224600DF32CD /* CreateOperationView.swift */; };
+		45B42B512EA33BEA00DF32CD /* OperationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B4E2EA329B100DF32CD /* OperationModels.swift */; };
+		45B42B572EA3C01F00DF32CD /* OpTargetImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B562EA3C01400DF32CD /* OpTargetImageManager.swift */; };
+		45B42B592EA3C04900DF32CD /* OpTargetGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B582EA3C04300DF32CD /* OpTargetGalleryView.swift */; };
+		45B42B5B2EA3DB0F00DF32CD /* OpTargetEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B5A2EA3DB0800DF32CD /* OpTargetEditorView.swift */; };
+		45B42B5D2EA3DDD600DF32CD /* OpTargetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B5C2EA3DDD400DF32CD /* OpTargetModels.swift */; };
+		45B42B5F2EA3DF4400DF32CD /* OpTargetKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B5E2EA3DF3E00DF32CD /* OpTargetKind.swift */; };
+		45B42B612EA3E98100DF32CD /* Operation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B602EA3E98100DF32CD /* Operation.swift */; };
+		45B42B652EA3FF6C00DF32CD /* SupabaseRPCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B642EA3FF6C00DF32CD /* SupabaseRPCService.swift */; };
+		45B42B672EA403EA00DF32CD /* RealtimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B662EA403E800DF32CD /* RealtimeService.swift */; };
+		45B42B692EA48AE000DF32CD /* AddressSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B682EA48AE000DF32CD /* AddressSearchField.swift */; };
+		45B42B6D2EA5939800DF32CD /* OperationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B6C2EA5939800DF32CD /* OperationDetailView.swift */; };
+		45B42B6F2EA593AB00DF32CD /* EditOperationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B6E2EA593AB00DF32CD /* EditOperationView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
+		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
+		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
+		4532AE422EA5DDCF00649F04 /* ActiveOperationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveOperationDetailView.swift; sourceTree = "<group>"; };
+		4532AE442EA69C1600649F04 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		45B42B052EA2DE3400DF32CD /* Survale.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Survale.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		45B42B132EA2E13D00DF32CD /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		45B42B142EA2E13D00DF32CD /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		45B42B152EA2E13D00DF32CD /* MainTabsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabsView.swift; sourceTree = "<group>"; };
+		45B42B162EA2E13D00DF32CD /* MapOperationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapOperationView.swift; sourceTree = "<group>"; };
+		45B42B172EA2E13D00DF32CD /* OperationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationsView.swift; sourceTree = "<group>"; };
+		45B42B182EA2E13D00DF32CD /* ReplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplayView.swift; sourceTree = "<group>"; };
+		45B42B192EA2E13D00DF32CD /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		45B42B1A2EA2E13D00DF32CD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		45B42B242EA2E8E400DF32CD /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		45B42B352EA2FAAD00DF32CD /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		45B42B372EA2FAC400DF32CD /* SupabaseAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseAuthService.swift; sourceTree = "<group>"; };
+		45B42B3C2EA303E800DF32CD /* SignUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
+		45B42B3E2EA3040A00DF32CD /* ResetPasswordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetPasswordView.swift; sourceTree = "<group>"; };
+		45B42B412EA30CB000DF32CD /* LocationServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationServices.swift; sourceTree = "<group>"; };
+		45B42B452EA3221000DF32CD /* OperationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationStore.swift; sourceTree = "<group>"; };
+		45B42B472EA3224600DF32CD /* CreateOperationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateOperationView.swift; sourceTree = "<group>"; };
+		45B42B4E2EA329B100DF32CD /* OperationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationModels.swift; sourceTree = "<group>"; };
+		45B42B562EA3C01400DF32CD /* OpTargetImageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpTargetImageManager.swift; sourceTree = "<group>"; };
+		45B42B582EA3C04300DF32CD /* OpTargetGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpTargetGalleryView.swift; sourceTree = "<group>"; };
+		45B42B5A2EA3DB0800DF32CD /* OpTargetEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpTargetEditorView.swift; sourceTree = "<group>"; };
+		45B42B5C2EA3DDD400DF32CD /* OpTargetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpTargetModels.swift; sourceTree = "<group>"; };
+		45B42B5E2EA3DF3E00DF32CD /* OpTargetKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpTargetKind.swift; sourceTree = "<group>"; };
+		45B42B602EA3E98100DF32CD /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
+		45B42B642EA3FF6C00DF32CD /* SupabaseRPCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseRPCService.swift; sourceTree = "<group>"; };
+		45B42B662EA403E800DF32CD /* RealtimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeService.swift; sourceTree = "<group>"; };
+		45B42B682EA48AE000DF32CD /* AddressSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressSearchField.swift; sourceTree = "<group>"; };
+		45B42B6C2EA5939800DF32CD /* OperationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationDetailView.swift; sourceTree = "<group>"; };
+		45B42B6E2EA593AB00DF32CD /* EditOperationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditOperationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		45B42B342EA2F9EA00DF32CD /* Exceptions for "Survale" folder in "Survale" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 45B42B042EA2DE3400DF32CD /* Survale */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		45B42B072EA2DE3400DF32CD /* Survale */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				45B42B342EA2F9EA00DF32CD /* Exceptions for "Survale" folder in "Survale" target */,
+			);
 			path = Survale;
 			sourceTree = "<group>";
 		};
@@ -23,6 +111,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				45B42B2E2EA2F8D600DF32CD /* PostgREST in Frameworks */,
+				45B42B2C2EA2F8D600DF32CD /* Functions in Frameworks */,
+				45B42B3B2EA2FDD900DF32CD /* Supabase in Frameworks */,
+				45B42B2A2EA2F8D600DF32CD /* Auth in Frameworks */,
+				45B42B322EA2F8D600DF32CD /* Storage in Frameworks */,
+				45B42B302EA2F8D600DF32CD /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,8 +126,21 @@
 		45B42AFC2EA2DE3400DF32CD = {
 			isa = PBXGroup;
 			children = (
+				45B42B682EA48AE000DF32CD /* AddressSearchField.swift */,
+				45B42B5E2EA3DF3E00DF32CD /* OpTargetKind.swift */,
+				45B42B5A2EA3DB0800DF32CD /* OpTargetEditorView.swift */,
+				45B42B582EA3C04300DF32CD /* OpTargetGalleryView.swift */,
+				45B42B562EA3C01400DF32CD /* OpTargetImageManager.swift */,
+				45B42B4D2EA329A400DF32CD /* Models */,
+				45B42B452EA3221000DF32CD /* OperationStore.swift */,
+				45B42B402EA30CA100DF32CD /* Services */,
+				45B42B352EA2FAAD00DF32CD /* Secrets.swift */,
+				45B42B242EA2E8E400DF32CD /* AppState.swift */,
+				45B42B232EA2E16000DF32CD /* Views */,
 				45B42B072EA2DE3400DF32CD /* Survale */,
+				45B42B392EA2FDD900DF32CD /* Frameworks */,
 				45B42B062EA2DE3400DF32CD /* Products */,
+				45B42B602EA3E98100DF32CD /* Operation.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -43,6 +150,58 @@
 				45B42B052EA2DE3400DF32CD /* Survale.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		45B42B232EA2E16000DF32CD /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				4532AE442EA69C1600649F04 /* CameraView.swift */,
+				4532AE422EA5DDCF00649F04 /* ActiveOperationDetailView.swift */,
+				4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */,
+				4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */,
+				45B42B6E2EA593AB00DF32CD /* EditOperationView.swift */,
+				45B42B6C2EA5939800DF32CD /* OperationDetailView.swift */,
+				45B42B472EA3224600DF32CD /* CreateOperationView.swift */,
+				45B42B3E2EA3040A00DF32CD /* ResetPasswordView.swift */,
+				45B42B3C2EA303E800DF32CD /* SignUpView.swift */,
+				45B42B132EA2E13D00DF32CD /* ChatView.swift */,
+				45B42B142EA2E13D00DF32CD /* LoginView.swift */,
+				45B42B152EA2E13D00DF32CD /* MainTabsView.swift */,
+				45B42B162EA2E13D00DF32CD /* MapOperationView.swift */,
+				45B42B172EA2E13D00DF32CD /* OperationsView.swift */,
+				45B42B182EA2E13D00DF32CD /* ReplayView.swift */,
+				45B42B192EA2E13D00DF32CD /* RootView.swift */,
+				45B42B1A2EA2E13D00DF32CD /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		45B42B392EA2FDD900DF32CD /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		45B42B402EA30CA100DF32CD /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */,
+				45B42B662EA403E800DF32CD /* RealtimeService.swift */,
+				45B42B642EA3FF6C00DF32CD /* SupabaseRPCService.swift */,
+				45B42B412EA30CB000DF32CD /* LocationServices.swift */,
+				45B42B372EA2FAC400DF32CD /* SupabaseAuthService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		45B42B4D2EA329A400DF32CD /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				45B42B5C2EA3DDD400DF32CD /* OpTargetModels.swift */,
+				45B42B4E2EA329B100DF32CD /* OperationModels.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -65,6 +224,12 @@
 			);
 			name = Survale;
 			packageProductDependencies = (
+				45B42B292EA2F8D600DF32CD /* Auth */,
+				45B42B2B2EA2F8D600DF32CD /* Functions */,
+				45B42B2D2EA2F8D600DF32CD /* PostgREST */,
+				45B42B2F2EA2F8D600DF32CD /* Realtime */,
+				45B42B312EA2F8D600DF32CD /* Storage */,
+				45B42B3A2EA2FDD900DF32CD /* Supabase */,
 			);
 			productName = Survale;
 			productReference = 45B42B052EA2DE3400DF32CD /* Survale.app */;
@@ -94,6 +259,9 @@
 			);
 			mainGroup = 45B42AFC2EA2DE3400DF32CD;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 45B42B062EA2DE3400DF32CD /* Products */;
 			projectDirPath = "";
@@ -119,6 +287,39 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				45B42B512EA33BEA00DF32CD /* OperationModels.swift in Sources */,
+				4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */,
+				45B42B5D2EA3DDD600DF32CD /* OpTargetModels.swift in Sources */,
+				45B42B1B2EA2E13D00DF32CD /* LoginView.swift in Sources */,
+				45B42B1C2EA2E13D00DF32CD /* OperationsView.swift in Sources */,
+				45B42B1D2EA2E13D00DF32CD /* ReplayView.swift in Sources */,
+				45B42B592EA3C04900DF32CD /* OpTargetGalleryView.swift in Sources */,
+				45B42B3F2EA3041100DF32CD /* ResetPasswordView.swift in Sources */,
+				45B42B1E2EA2E13D00DF32CD /* RootView.swift in Sources */,
+				45B42B1F2EA2E13D00DF32CD /* MainTabsView.swift in Sources */,
+				45B42B202EA2E13D00DF32CD /* ChatView.swift in Sources */,
+				45B42B672EA403EA00DF32CD /* RealtimeService.swift in Sources */,
+				45B42B252EA2E8E900DF32CD /* AppState.swift in Sources */,
+				45B42B382EA2FAC700DF32CD /* SupabaseAuthService.swift in Sources */,
+				45B42B3D2EA303ED00DF32CD /* SignUpView.swift in Sources */,
+				4532AE432EA5DDCF00649F04 /* ActiveOperationDetailView.swift in Sources */,
+				45B42B612EA3E98100DF32CD /* Operation.swift in Sources */,
+				45B42B652EA3FF6C00DF32CD /* SupabaseRPCService.swift in Sources */,
+				45B42B212EA2E13D00DF32CD /* MapOperationView.swift in Sources */,
+				45B42B6F2EA593AB00DF32CD /* EditOperationView.swift in Sources */,
+				45B42B462EA3221500DF32CD /* OperationStore.swift in Sources */,
+				45B42B692EA48AE000DF32CD /* AddressSearchField.swift in Sources */,
+				45B42B572EA3C01F00DF32CD /* OpTargetImageManager.swift in Sources */,
+				4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */,
+				45B42B6D2EA5939800DF32CD /* OperationDetailView.swift in Sources */,
+				45B42B222EA2E13D00DF32CD /* SettingsView.swift in Sources */,
+				4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */,
+				45B42B482EA3224D00DF32CD /* CreateOperationView.swift in Sources */,
+				4532AE452EA69C1600649F04 /* CameraView.swift in Sources */,
+				45B42B422EA30CB700DF32CD /* LocationServices.swift in Sources */,
+				45B42B5F2EA3DF4400DF32CD /* OpTargetKind.swift in Sources */,
+				45B42B362EA2FAB000DF32CD /* Secrets.swift in Sources */,
+				45B42B5B2EA3DB0F00DF32CD /* OpTargetEditorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,19 +457,33 @@
 				DEVELOPMENT_TEAM = RJ7WAK3F24;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Survale/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Survale;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Survale needs access to your camera to take photos and videos for sharing with your team during operations.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Survale needs continuous access to your location to track your position during active surveillance operations, even when the app is in the background. This is essential for team coordination and safety.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Survale needs continuous access to your location to track your position during active surveillance operations, even when the app is in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Survale needs your location to show your position on the map during surveillance operations.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Survale needs access to your microphone to record audio when capturing videos during operations.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Survale needs permission to save photos and videos to your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fillmoreecommercesolutions.Survale;
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.survale.Survale;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -285,22 +500,36 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = RJ7WAK3F24;
+				DEVELOPMENT_TEAM = VUF26YSE95;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Survale/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Survale;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Survale needs access to your camera to take photos and videos for sharing with your team during operations.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Survale needs continuous access to your location to track your position during active surveillance operations, even when the app is in the background. This is essential for team coordination and safety.";
+				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Survale needs continuous access to your location to track your position during active surveillance operations, even when the app is in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Survale needs your location to show your position on the map during surveillance operations.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Survale needs access to your microphone to record audio when capturing videos during operations.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Survale needs permission to save photos and videos to your library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fillmoreecommercesolutions.Survale;
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.survale.Survale;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -332,6 +561,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		45B42B292EA2F8D600DF32CD /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		45B42B2B2EA2F8D600DF32CD /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		45B42B2D2EA2F8D600DF32CD /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		45B42B2F2EA2F8D600DF32CD /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		45B42B312EA2F8D600DF32CD /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		45B42B3A2EA2FDD900DF32CD /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 45B42B282EA2F8D600DF32CD /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 45B42AFD2EA2DE3400DF32CD /* Project object */;
 }

@@ -1,0 +1,1069 @@
+//
+//  SupabaseRPCService.swift
+//  Survale
+//
+//  RPC functions for secure Supabase operations
+//
+
+import Foundation
+import Supabase
+
+final class SupabaseRPCService: @unchecked Sendable {
+    static let shared = SupabaseRPCService()
+    
+    private let client: SupabaseClient
+    
+    // Shared image item struct for encoding
+    struct EncodableImageItem: Encodable, Sendable {
+        let id: String
+        let storage_kind: String
+        let remote_url: String?
+        let local_path: String?
+        let filename: String
+        let pixel_width: Int?
+        let pixel_height: Int?
+        let byte_size: Int?
+        let created_at: String
+        let caption: String?
+        
+        static func from(_ dict: [String: Any]) -> EncodableImageItem? {
+            guard let id = dict["id"] as? String,
+                  let storageKind = dict["storage_kind"] as? String,
+                  let filename = dict["filename"] as? String,
+                  let createdAt = dict["created_at"] as? String else {
+                return nil
+            }
+            return EncodableImageItem(
+                id: id,
+                storage_kind: storageKind,
+                remote_url: dict["remote_url"] as? String,
+                local_path: dict["local_path"] as? String,
+                filename: filename,
+                pixel_width: dict["pixel_width"] as? Int,
+                pixel_height: dict["pixel_height"] as? Int,
+                byte_size: dict["byte_size"] as? Int,
+                created_at: createdAt,
+                caption: dict["caption"] as? String
+            )
+        }
+        
+        static func fromArray(_ dictArray: [[String: Any]]) -> [EncodableImageItem] {
+            return dictArray.compactMap { from($0) }
+        }
+    }
+    
+    private init() {
+        // Create client directly to avoid MainActor isolation issues
+        self.client = SupabaseClient(
+            supabaseURL: Secrets.supabaseURL,
+            supabaseKey: Secrets.anonKey
+        )
+    }
+    
+    // MARK: - Operation Lifecycle
+    
+    /// Create a new operation (draft state)
+    /// Returns the operation ID
+    nonisolated func createOperation(name: String, incidentNumber: String?) async throws -> UUID {
+        struct CreateOperationParams: Encodable, Sendable {
+            let name: String
+            let incident_number: String?
+        }
+        
+        struct CreateOperationResponse: Decodable, Sendable {
+            let operation_id: String
+        }
+        
+        let params = CreateOperationParams(
+            name: name,
+            incident_number: incidentNumber
+        )
+        
+        let response: CreateOperationResponse = try await client
+            .rpc("rpc_create_operation", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.operation_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid operation ID format")
+        }
+        
+        return uuid
+    }
+    
+    /// Start an operation (changes state to active)
+    nonisolated func startOperation(operationId: UUID) async throws {
+        struct StartOperationParams: Encodable, Sendable {
+            let operation_id: String
+        }
+        
+        let params = StartOperationParams(operation_id: operationId.uuidString)
+        
+        try await client
+            .rpc("rpc_start_operation", params: params)
+            .execute()
+    }
+    
+    /// End an operation (changes state to ended)
+    nonisolated func endOperation(operationId: UUID) async throws {
+        struct EndOperationParams: Encodable, Sendable {
+            let operation_id: String
+        }
+        
+        let params = EndOperationParams(operation_id: operationId.uuidString)
+        
+        try await client
+            .rpc("rpc_end_operation", params: params)
+            .execute()
+    }
+    
+    // MARK: - Member Management
+    
+    /// Invite a user to an operation
+    nonisolated func inviteUser(operationId: UUID, inviteeUserId: UUID, expiresAt: Date) async throws {
+        struct InviteUserParams: Encodable, Sendable {
+            let operation_id: String
+            let invitee_user_id: String
+            let expires_at: String
+        }
+        
+        let formatter = ISO8601DateFormatter()
+        let params = InviteUserParams(
+            operation_id: operationId.uuidString,
+            invitee_user_id: inviteeUserId.uuidString,
+            expires_at: formatter.string(from: expiresAt)
+        )
+        
+        try await client
+            .rpc("rpc_invite_user", params: params)
+            .execute()
+    }
+    
+    /// Accept an operation invite
+    nonisolated func acceptInvite(inviteId: UUID) async throws {
+        struct AcceptInviteParams: Encodable, Sendable {
+            let invite_id: String
+        }
+        
+        let params = AcceptInviteParams(invite_id: inviteId.uuidString)
+        
+        try await client
+            .rpc("rpc_accept_invite", params: params)
+            .execute()
+    }
+    
+    /// Request to join an operation
+    nonisolated func requestJoin(operationId: UUID) async throws {
+        struct RequestJoinParams: Encodable, Sendable {
+            let operation_id: String
+        }
+        
+        let params = RequestJoinParams(operation_id: operationId.uuidString)
+        
+        try await client
+            .rpc("rpc_request_join", params: params)
+            .execute()
+    }
+    
+    /// Approve or deny a join request
+    nonisolated func approveJoin(requestId: UUID, approve: Bool) async throws {
+        struct ApproveJoinParams: Encodable, Sendable {
+            let request_id: String
+            let approve_bool: Bool
+        }
+        
+        let params = ApproveJoinParams(
+            request_id: requestId.uuidString,
+            approve_bool: approve
+        )
+        
+        try await client
+            .rpc("rpc_approve_join", params: params)
+            .execute()
+    }
+    
+    // MARK: - Messaging
+    
+    /// Post a message to an operation channel
+    nonisolated func postMessage(
+        operationId: UUID,
+        bodyText: String,
+        mediaPath: String? = nil,
+        mediaType: String = "text"
+    ) async throws {
+        struct PostMessageParams: Encodable, Sendable {
+            let operation_id: String
+            let body_text: String
+            let media_path: String?
+            let media_type: String
+        }
+        
+        let params = PostMessageParams(
+            operation_id: operationId.uuidString,
+            body_text: bodyText,
+            media_path: mediaPath,
+            media_type: mediaType
+        )
+        
+        try await client
+            .rpc("rpc_post_message", params: params)
+            .execute()
+    }
+    
+    // MARK: - Location Tracking
+    
+    /// Publish current location to operation
+    nonisolated func publishLocation(
+        operationId: UUID,
+        lat: Double,
+        lon: Double,
+        accuracy: Double,
+        speed: Double?,
+        heading: Double?
+    ) async throws {
+        struct PublishLocationParams: Encodable, Sendable {
+            let operation_id: String
+            let lat: Double
+            let lon: Double
+            let accuracy_m: Double
+            let speed_mps: Double?
+            let heading_deg: Double?
+        }
+        
+        let params = PublishLocationParams(
+            operation_id: operationId.uuidString,
+            lat: lat,
+            lon: lon,
+            accuracy_m: accuracy,
+            speed_mps: speed,
+            heading_deg: heading
+        )
+        
+        try await client
+            .rpc("rpc_publish_location", params: params)
+            .execute()
+    }
+    
+    // MARK: - Export (Placeholder)
+    
+    /// Tag segments for export
+    nonisolated func tagExportSegments(operationId: UUID, segments: [[String: Any]]) async throws {
+        struct TagExportParams: Encodable, Sendable {
+            let operation_id: String
+            let segments_json: String
+        }
+        
+        let jsonData = try JSONSerialization.data(withJSONObject: segments)
+        let jsonString = String(data: jsonData, encoding: .utf8) ?? "[]"
+        
+        let params = TagExportParams(
+            operation_id: operationId.uuidString,
+            segments_json: jsonString
+        )
+        
+        try await client
+            .rpc("rpc_tag_export_segments", params: params)
+            .execute()
+    }
+    
+    /// Request PDF export
+    nonisolated func requestExportPDF(operationId: UUID, includeMaps: Bool) async throws -> UUID {
+        struct RequestExportParams: Encodable, Sendable {
+            let operation_id: String
+            let include_maps_bool: Bool
+        }
+        
+        struct ExportResponse: Decodable, Sendable {
+            let export_id: String
+        }
+        
+        let params = RequestExportParams(
+            operation_id: operationId.uuidString,
+            include_maps_bool: includeMaps
+        )
+        
+        let response: ExportResponse = try await client
+            .rpc("rpc_request_export_pdf", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.export_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid export ID format")
+        }
+        
+        return uuid
+    }
+    
+    // MARK: - Targets
+    
+    /// Create person target
+    nonisolated func createPersonTarget(
+        operationId: UUID,
+        firstName: String,
+        lastName: String,
+        phone: String?,
+        images: [[String: Any]] = []
+    ) async throws -> UUID {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+            let first_name: String
+            let last_name: String
+            let phone: String?
+            let images: [EncodableImageItem]
+        }
+        
+        struct Response: Decodable, Sendable {
+            let target_id: String
+        }
+        
+        let params = Params(
+            operation_id: operationId.uuidString,
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone,
+            images: EncodableImageItem.fromArray(images)
+        )
+        
+        let response: Response = try await client
+            .rpc("rpc_create_person_target", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.target_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid target ID format")
+        }
+        
+        return uuid
+    }
+    
+    /// Create vehicle target
+    nonisolated func createVehicleTarget(
+        operationId: UUID,
+        make: String?,
+        model: String?,
+        color: String?,
+        plate: String?,
+        images: [[String: Any]] = []
+    ) async throws -> UUID {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+            let make: String?
+            let model: String?
+            let color: String?
+            let plate: String?
+            let images: [EncodableImageItem]
+        }
+        
+        struct Response: Decodable, Sendable {
+            let target_id: String
+        }
+        
+        let params = Params(
+            operation_id: operationId.uuidString,
+            make: make,
+            model: model,
+            color: color,
+            plate: plate,
+            images: EncodableImageItem.fromArray(images)
+        )
+        
+        let response: Response = try await client
+            .rpc("rpc_create_vehicle_target", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.target_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid target ID format")
+        }
+        
+        return uuid
+    }
+    
+    /// Create location target
+    nonisolated func createLocationTarget(
+        operationId: UUID,
+        address: String,
+        label: String?,
+        city: String?,
+        zipCode: String?,
+        latitude: Double?,
+        longitude: Double?,
+        images: [[String: Any]] = []
+    ) async throws -> UUID {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+            let address: String
+            let label: String?
+            let city: String?
+            let zip_code: String?
+            let latitude: Double?
+            let longitude: Double?
+            let images: [EncodableImageItem]
+        }
+        
+        struct Response: Decodable, Sendable {
+            let target_id: String
+        }
+        
+        let params = Params(
+            operation_id: operationId.uuidString,
+            address: address,
+            label: label,
+            city: city,
+            zip_code: zipCode,
+            latitude: latitude,
+            longitude: longitude,
+            images: EncodableImageItem.fromArray(images)
+        )
+        
+        let response: Response = try await client
+            .rpc("rpc_create_location_target", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.target_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid target ID format")
+        }
+        
+        return uuid
+    }
+    
+    /// Update target images
+    nonisolated func updateTargetImages(targetId: UUID, images: [[String: Any]]) async throws {
+        struct Params: Encodable, Sendable {
+            let target_id: String
+            let images: [EncodableImageItem]
+        }
+        
+        struct Response: Decodable, Sendable {
+            let success: Bool
+        }
+        
+        let params = Params(
+            target_id: targetId.uuidString,
+            images: EncodableImageItem.fromArray(images)
+        )
+        
+        let _: Response = try await client
+            .rpc("rpc_update_target_images", params: params)
+            .execute()
+            .value
+        
+        print("✅ Target images updated")
+    }
+    
+    /// Delete target
+    nonisolated func deleteTarget(targetId: UUID) async throws {
+        struct Params: Encodable, Sendable {
+            let target_id: String
+        }
+        
+        struct Response: Decodable, Sendable {
+            let success: Bool
+        }
+        
+        let params = Params(target_id: targetId.uuidString)
+        
+        let _: Response = try await client
+            .rpc("rpc_delete_target", params: params)
+            .execute()
+            .value
+        
+        print("✅ Target deleted")
+    }
+    
+    /// Delete staging point
+    nonisolated func deleteStagingPoint(stagingId: UUID) async throws {
+        struct Params: Encodable, Sendable {
+            let staging_id: String
+        }
+        
+        struct Response: Decodable, Sendable {
+            let success: Bool
+        }
+        
+        let params = Params(staging_id: stagingId.uuidString)
+        
+        let _: Response = try await client
+            .rpc("rpc_delete_staging_point", params: params)
+            .execute()
+            .value
+        
+        print("✅ Staging point deleted")
+    }
+    
+    /// Create staging point
+    nonisolated func createStagingPoint(
+        operationId: UUID,
+        label: String,
+        latitude: Double,
+        longitude: Double
+    ) async throws -> UUID {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+            let label: String
+            let latitude: Double
+            let longitude: Double
+        }
+        
+        struct Response: Decodable, Sendable {
+            let staging_id: String
+        }
+        
+        let params = Params(
+            operation_id: operationId.uuidString,
+            label: label,
+            latitude: latitude,
+            longitude: longitude
+        )
+        
+        let response: Response = try await client
+            .rpc("rpc_create_staging_point", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.staging_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid staging ID format")
+        }
+        
+        return uuid
+    }
+    
+    /// Get targets and staging for an operation
+    nonisolated func getOperationTargets(operationId: UUID) async throws -> (targets: [OpTarget], staging: [StagingPoint]) {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+        }
+        
+        struct TargetResponse: Decodable {
+            let targets: [TargetData]
+            let staging: [StagingData]
+        }
+        
+        struct TargetData: Decodable {
+            let id: String
+            let type: String
+            let person: PersonData?
+            let vehicle: VehicleData?
+            let location: LocationData?
+        }
+        
+        struct PersonData: Decodable {
+            let first_name: String
+            let last_name: String
+            let phone_number: String?
+            let notes: String?
+            let images: [ImageData]?
+        }
+        
+        struct VehicleData: Decodable {
+            let make: String?
+            let model: String?
+            let color: String?
+            let plate: String?
+            let notes: String?
+            let images: [ImageData]?
+        }
+        
+        struct LocationData: Decodable {
+            let label: String?
+            let address: String
+            let latitude: Double?
+            let longitude: Double?
+            let notes: String?
+            let images: [ImageData]?
+        }
+        
+        struct ImageData: Decodable {
+            let id: String
+            let storage_kind: String
+            let remote_url: String?
+            let local_path: String?
+            let filename: String
+            let pixel_width: Int?
+            let pixel_height: Int?
+            let byte_size: Int?
+            let created_at: String
+            let caption: String?
+        }
+        
+        struct StagingData: Decodable {
+            let id: String
+            let label: String
+            let latitude: Double
+            let longitude: Double
+        }
+        
+        let params = Params(operation_id: operationId.uuidString)
+        
+        // Get raw response data for debugging
+        let rawData = try await client
+            .rpc("rpc_get_operation_targets", params: params)
+            .execute()
+            .data
+        
+        if let jsonString = String(data: rawData, encoding: .utf8) {
+            print("🔍 RAW JSON Response:\n\(jsonString)")
+        }
+        
+        let response: TargetResponse = try JSONDecoder().decode(TargetResponse.self, from: rawData)
+        
+        print("🔍 RPC Response: \(response.targets.count) targets, \(response.staging.count) staging")
+        
+        // Convert to OpTarget objects
+        var targets: [OpTarget] = []
+        for targetData in response.targets {
+            guard let targetId = UUID(uuidString: targetData.id) else { continue }
+            
+            print("   🎯 Target from DB: \(targetData.type) - \(targetData.id)")
+            
+            switch targetData.type {
+            case "person":
+                if let person = targetData.person {
+                    var target = OpTarget(
+                        id: targetId,
+                        kind: .person,
+                        personName: "\(person.first_name ?? "") \(person.last_name ?? "")".trimmingCharacters(in: .whitespaces),
+                        phone: person.phone_number
+                    )
+                    target.images = parseImages(person.images)
+                    targets.append(target)
+                    print("      Person: \(target.label) - \(target.images.count) image(s)")
+                }
+            case "vehicle":
+                if let vehicle = targetData.vehicle {
+                    var target = OpTarget(
+                        id: targetId,
+                        kind: .vehicle,
+                        vehicleMake: vehicle.make,
+                        vehicleModel: vehicle.model,
+                        vehicleColor: vehicle.color,
+                        licensePlate: vehicle.plate
+                    )
+                    target.images = parseImages(vehicle.images)
+                    targets.append(target)
+                    print("      Vehicle: \(target.label) - \(target.images.count) image(s)")
+                }
+            case "location":
+                if let location = targetData.location {
+                    var target = OpTarget(
+                        id: targetId,
+                        kind: .location,
+                        locationName: location.label,
+                        locationAddress: location.address
+                    )
+                    // Set coordinates from database
+                    target.locationLat = location.latitude
+                    target.locationLng = location.longitude
+                    // Set label from database (prioritize custom label)
+                    target.label = location.label ?? location.address
+                    target.images = parseImages(location.images)
+                    targets.append(target)
+                    print("      Location: \(target.label) - has coordinates: \(target.coordinate != nil) - lat:\(location.latitude ?? 0), lng:\(location.longitude ?? 0) - \(target.images.count) image(s)")
+                }
+            default:
+                break
+            }
+        }
+        
+        print("✅ Converted \(targets.count) targets")
+        
+        // Convert to StagingPoint objects
+        var staging: [StagingPoint] = []
+        for stagingData in response.staging {
+            guard let stagingId = UUID(uuidString: stagingData.id) else {
+                print("⚠️ Invalid staging ID: \(stagingData.id)")
+                continue
+            }
+            
+            print("   📍 Staging from DB: \(stagingData.label) at (\(stagingData.latitude), \(stagingData.longitude))")
+            
+            let point = StagingPoint(
+                id: stagingId,
+                label: stagingData.label,
+                address: "", // Address stored as coordinates in database
+                lat: stagingData.latitude,
+                lng: stagingData.longitude
+            )
+            staging.append(point)
+        }
+        
+        print("✅ Converted \(staging.count) staging points")
+        return (targets, staging)
+        
+        // Helper function to parse images
+        func parseImages(_ imageDataArray: [ImageData]?) -> [OpTargetImage] {
+            guard let imageDataArray = imageDataArray else { return [] }
+            
+            let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            
+            return imageDataArray.compactMap { imageData in
+                guard let imageId = UUID(uuidString: imageData.id) else { return nil }
+                
+                let storageKind: OpTargetImage.StorageKind = imageData.storage_kind == "remoteURL" ? .remoteURL : .localFile
+                let remoteURL = imageData.remote_url.flatMap { URL(string: $0) }
+                let createdAt = dateFormatter.date(from: imageData.created_at) ?? Date()
+                
+                return OpTargetImage(
+                    id: imageId,
+                    storageKind: storageKind,
+                    localPath: imageData.local_path,
+                    remoteURL: remoteURL,
+                    filename: imageData.filename,
+                    pixelWidth: imageData.pixel_width,
+                    pixelHeight: imageData.pixel_height,
+                    byteSize: imageData.byte_size,
+                    createdAt: createdAt,
+                    caption: imageData.caption
+                )
+            }
+        }
+    }
+    
+    // MARK: - Fetch Operations
+    
+    /// Get all active operations in the system
+    nonisolated func getAllActiveOperations() async throws -> [(operation: Operation, isMember: Bool)] {
+        struct Response: Decodable {
+            let id: String
+            let name: String
+            let incident_number: String?
+            let status: String
+            let created_at: String
+            let started_at: String?
+            let ended_at: String?
+            let case_agent_id: String
+            let team_id: String
+            let agency_id: String
+            let is_member: Bool
+        }
+        
+        let responses: [Response] = try await client
+            .rpc("rpc_get_all_active_operations")
+            .execute()
+            .value
+        
+        print("🔄 Loaded \(responses.count) active operations from database")
+        
+        // Convert to Operation objects with membership status
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var results: [(operation: Operation, isMember: Bool)] = []
+        
+        for response in responses {
+            guard let id = UUID(uuidString: response.id),
+                  let caseAgentId = UUID(uuidString: response.case_agent_id),
+                  let teamId = UUID(uuidString: response.team_id),
+                  let agencyId = UUID(uuidString: response.agency_id),
+                  let createdAt = dateFormatter.date(from: response.created_at) else {
+                print("      ⚠️ Skipping operation with invalid data: \(response.name)")
+                continue
+            }
+            
+            let state: OperationState
+            switch response.status {
+            case "active": state = .active
+            case "ended": state = .ended
+            default: state = .active  // Default to active
+            }
+            
+            let operation = Operation(
+                id: id,
+                name: response.name,
+                incidentNumber: response.incident_number,
+                state: state,
+                createdAt: createdAt,
+                startsAt: response.started_at.flatMap { dateFormatter.date(from: $0) },
+                endsAt: response.ended_at.flatMap { dateFormatter.date(from: $0) },
+                createdByUserId: caseAgentId,
+                teamId: teamId,
+                agencyId: agencyId
+            )
+            
+            results.append((operation: operation, isMember: response.is_member))
+            print("  ✅ \(operation.name) - Member: \(response.is_member ? "Yes" : "No")")
+        }
+        
+        print("✅ Loaded \(results.count) active operations")
+        return results
+    }
+    
+    // MARK: - Request to Join
+    
+    /// Request to join an operation
+    nonisolated func requestJoinOperation(operationId: UUID) async throws {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+        }
+        
+        struct Response: Decodable, Sendable {
+            let request_id: String
+        }
+        
+        let params = Params(operation_id: operationId.uuidString)
+        
+        let _: Response = try await client
+            .rpc("rpc_request_join_operation", params: params)
+            .execute()
+            .value
+        
+        print("✅ Join request sent for operation: \(operationId)")
+    }
+    
+    // MARK: - Join Requests
+    
+    /// Get pending join requests for an operation (case agent only)
+    nonisolated func getPendingJoinRequests(operationId: UUID) async throws -> [JoinRequest] {
+        struct Response: Decodable {
+            let id: String
+            let requester_user_id: String
+            let created_at: String
+        }
+        
+        let responses: [Response] = try await client
+            .from("join_requests")
+            .select("id, requester_user_id, created_at")
+            .eq("operation_id", value: operationId.uuidString)
+            .eq("status", value: "pending")
+            .order("created_at", ascending: true)
+            .execute()
+            .value
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        return responses.compactMap { response -> JoinRequest? in
+            guard let id = UUID(uuidString: response.id),
+                  let requesterId = UUID(uuidString: response.requester_user_id),
+                  let createdAt = dateFormatter.date(from: response.created_at) else {
+                return nil
+            }
+            
+            return JoinRequest(
+                id: id,
+                operationId: operationId,
+                requesterUserId: requesterId,
+                status: .pending,
+                createdAt: createdAt
+            )
+        }
+    }
+    
+    /// Approve a join request and add user to operation
+    nonisolated func approveJoinRequest(requestId: UUID, operationId: UUID) async throws {
+        struct Params: Encodable, Sendable {
+            let request_id: String
+            let operation_id: String
+        }
+        
+        struct Response: Decodable, Sendable {
+            let success: Bool
+        }
+        
+        let params = Params(
+            request_id: requestId.uuidString,
+            operation_id: operationId.uuidString
+        )
+        
+        let _: Response = try await client
+            .rpc("rpc_approve_join_request", params: params)
+            .execute()
+            .value
+        
+        print("✅ Join request approved")
+    }
+    
+    /// Reject a join request
+    nonisolated func rejectJoinRequest(requestId: UUID) async throws {
+        struct Params: Encodable, Sendable {
+            let request_id: String
+        }
+        
+        struct Response: Decodable, Sendable {
+            let success: Bool
+        }
+        
+        let params = Params(request_id: requestId.uuidString)
+        
+        let _: Response = try await client
+            .rpc("rpc_reject_join_request", params: params)
+            .execute()
+            .value
+        
+        print("✅ Join request rejected")
+    }
+    
+    // MARK: - Team Management
+    
+    /// Get team roster with operation status
+    nonisolated func getTeamRoster() async throws -> [TeamMember] {
+        struct Response: Decodable {
+            let id: String
+            let full_name: String
+            let email: String
+            let callsign: String?
+            let in_operation: Bool
+            let operation_id: String?
+        }
+        
+        let responses: [Response] = try await client
+            .rpc("rpc_get_team_roster")
+            .execute()
+            .value
+        
+        print("🔄 Loaded \(responses.count) team members")
+        
+        return responses.compactMap { response in
+            guard let userId = UUID(uuidString: response.id) else {
+                print("⚠️ Skipping team member with invalid ID: \(response.id)")
+                return nil
+            }
+            
+            let operationId = response.operation_id.flatMap { UUID(uuidString: $0) }
+            
+            return TeamMember(
+                id: userId,
+                fullName: response.full_name,
+                email: response.email,
+                callsign: response.callsign,
+                inOperation: response.in_operation,
+                operationId: operationId
+            )
+        }
+    }
+    
+    /// Add multiple members to an operation
+    nonisolated func addOperationMembers(operationId: UUID, memberIds: [UUID]) async throws -> Int {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+            let member_user_ids: [String]
+        }
+        
+        struct Response: Decodable, Sendable {
+            let added_count: Int
+        }
+        
+        let params = Params(
+            operation_id: operationId.uuidString,
+            member_user_ids: memberIds.map { $0.uuidString }
+        )
+        
+        let response: Response = try await client
+            .rpc("rpc_add_operation_members", params: params)
+            .execute()
+            .value
+        
+        print("✅ Added \(response.added_count) members to operation")
+        return response.added_count
+    }
+    
+    /// Update operation details (name, incident number)
+    nonisolated func updateOperation(operationId: UUID, name: String, incidentNumber: String?) async throws {
+        struct Params: Encodable, Sendable {
+            let operation_id: String
+            let name: String
+            let incident_number: String?
+        }
+        
+        struct Response: Decodable, Sendable {
+            let success: Bool
+        }
+        
+        let params = Params(
+            operation_id: operationId.uuidString,
+            name: name,
+            incident_number: incidentNumber
+        )
+        
+        let _: Response = try await client
+            .rpc("rpc_update_operation", params: params)
+            .execute()
+            .value
+        
+        print("✅ Operation updated")
+    }
+    
+    /// Get previous (ended) operations
+    nonisolated func getPreviousOperations() async throws -> [Operation] {
+        struct Response: Decodable {
+            let id: String
+            let name: String
+            let incident_number: String?
+            let status: String
+            let created_at: String
+            let started_at: String?
+            let ended_at: String?
+            let case_agent_id: String
+            let team_id: String
+            let agency_id: String
+        }
+        
+        let responses: [Response] = try await client
+            .rpc("rpc_get_previous_operations")
+            .execute()
+            .value
+        
+        print("🔄 Loaded \(responses.count) previous operations")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        return responses.compactMap { response in
+            guard let id = UUID(uuidString: response.id),
+                  let caseAgentId = UUID(uuidString: response.case_agent_id),
+                  let teamId = UUID(uuidString: response.team_id),
+                  let agencyId = UUID(uuidString: response.agency_id),
+                  let createdAt = dateFormatter.date(from: response.created_at) else {
+                return nil
+            }
+            
+            return Operation(
+                id: id,
+                name: response.name,
+                incidentNumber: response.incident_number,
+                state: .ended,
+                createdAt: createdAt,
+                startsAt: response.started_at.flatMap { dateFormatter.date(from: $0) },
+                endsAt: response.ended_at.flatMap { dateFormatter.date(from: $0) },
+                createdByUserId: caseAgentId,
+                teamId: teamId,
+                agencyId: agencyId
+            )
+        }
+    }
+}
+
+// MARK: - Supporting Models
+
+struct TeamMember: Identifiable, Decodable {
+    let id: UUID
+    let fullName: String
+    let email: String
+    let callsign: String?
+    let inOperation: Bool
+    let operationId: UUID?
+}
+
+enum SupabaseRPCError: LocalizedError {
+    case invalidResponse(String)
+    case operationNotFound
+    case unauthorized
+    case operationEnded
+    case inviteExpired
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse(let message):
+            return "Invalid response: \(message)"
+        case .operationNotFound:
+            return "Operation not found"
+        case .unauthorized:
+            return "You are not authorized to perform this action"
+        case .operationEnded:
+            return "This operation has ended"
+        case .inviteExpired:
+            return "This invite has expired"
+        }
+    }
+}
