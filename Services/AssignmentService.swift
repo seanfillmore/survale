@@ -1,115 +1,116 @@
 import Foundation
-import CoreLocation
+import Supabase
+import Combine
 import MapKit
 import SwiftUI
 
-@MainActor
 final class AssignmentService: ObservableObject {
     static let shared = AssignmentService()
-    
-    @Published var assignments: [AssignedLocation] = []
-    @Published var myAssignment: AssignedLocation?
-    @Published var showAssignmentNotification = false
-    
-    private init() {}
-    
-    // MARK: - Case Agent Functions
-    
-    /// Assign a location to a team member
+
+    @Published var assignedLocations: [AssignedLocation] = []
+    @Published var activeOperationId: UUID?
+
+    private var rpcService: SupabaseRPCService
+    private var realtimeService: RealtimeService
+    private var cancellables = Set<AnyCancellable>()
+
+    private init(rpcService: SupabaseRPCService = .shared, realtimeService: RealtimeService = .shared) {
+        self.rpcService = rpcService
+        self.realtimeService = realtimeService
+
+        // Observe active operation changes from RealtimeService
+        realtimeService.$activeOperationId
+            .sink { [weak self] newOperationId in
+                guard let self else { return }
+                if self.activeOperationId != newOperationId {
+                    self.activeOperationId = newOperationId
+                    Task { await self.setupRealtimeSubscription(for: newOperationId) }
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    // MARK: - Public API
+
+    /// Assigns a new location to a team member.
     func assignLocation(
         operationId: UUID,
-        toUserId: UUID,
+        assignedToUserId: UUID,
         coordinate: CLLocationCoordinate2D,
         label: String?,
         notes: String?
-    ) async throws {
-        print("📍 Assigning location to user \(toUserId)")
-        
-        let response = try await SupabaseRPCService.shared.assignLocation(
+    ) async throws -> AssignedLocation {
+        print("Attempting to assign location for operation \(operationId) to user \(assignedToUserId)")
+        let response = try await rpcService.assignLocation(
             operationId: operationId,
-            assignedToUserId: toUserId,
+            assignedToUserId: assignedToUserId,
             lat: coordinate.latitude,
             lon: coordinate.longitude,
             label: label,
             notes: notes
         )
-        
-        print("✅ Assignment created: \(response.assignmentId)")
-        
-        // Refresh assignments
-        try await loadAssignments(for: operationId)
+        print("✅ Location assigned: \(response.assignment_id)")
+
+        // Immediately fetch all assignments to update local state
+        // This ensures the UI is updated even before realtime kicks in
+        await fetchAssignments(for: operationId)
+
+        // Find and return the newly assigned location
+        guard let newAssignment = assignedLocations.first(where: { $0.id.uuidString == response.assignment_id }) else {
+            throw AssignmentError.notFound("Newly assigned location not found after fetch.")
+        }
+        return newAssignment
     }
-    
-    /// Cancel an assignment
-    func cancelAssignment(assignmentId: UUID, operationId: UUID) async throws {
-        print("🗑️ Cancelling assignment \(assignmentId)")
-        
-        try await SupabaseRPCService.shared.cancelAssignment(
-            assignmentId: assignmentId
+
+    /// Updates the status of an assigned location.
+    func updateAssignmentStatus(assignmentId: UUID, status: AssignmentStatus) async throws {
+        print("Attempting to update assignment \(assignmentId) status to \(status.rawValue)")
+        _ = try await rpcService.updateAssignmentStatus(
+            assignmentId: assignmentId,
+            status: status.rawValue
         )
-        
-        print("✅ Assignment cancelled")
-        
-        // Refresh assignments
-        try await loadAssignments(for: operationId)
+        print("✅ Assignment \(assignmentId) status updated to \(status.rawValue)")
+        await fetchAssignments(for: activeOperationId) // Refresh all to ensure consistency
     }
-    
+
+    /// Cancels an assigned location.
+    func cancelAssignment(assignmentId: UUID) async throws {
+        print("Attempting to cancel assignment \(assignmentId)")
+        try await rpcService.cancelAssignment(assignmentId: assignmentId)
+        print("✅ Assignment \(assignmentId) cancelled")
+        await fetchAssignments(for: activeOperationId) // Refresh all to ensure consistency
+    }
+
+    /// Fetches all assigned locations for the current active operation.
+    func fetchAssignments(for operationId: UUID?) async {
+        guard let operationId = operationId else {
+            await MainActor.run { self.assignedLocations = [] }
+            return
+        }
+        print("Fetching assigned locations for operation \(operationId)")
+        do {
+            let fetched = try await rpcService.getOperationAssignments(operationId: operationId)
+            await MainActor.run {
+                self.assignedLocations = fetched
+                print("✅ Fetched \(fetched.count) assigned locations.")
+            }
+        } catch {
+            print("❌ Failed to fetch assigned locations: \(error)")
+            await MainActor.run { self.assignedLocations = [] }
+        }
+    }
+
     // MARK: - Team Member Functions
     
     /// Acknowledge assignment and set status to en_route
     func acknowledgeAssignment(assignmentId: UUID) async throws {
-        print("✋ Acknowledging assignment \(assignmentId)")
-        
-        _ = try await SupabaseRPCService.shared.updateAssignmentStatus(
-            assignmentId: assignmentId,
-            status: "en_route"
-        )
-        
-        print("✅ Status updated to en_route")
-        
-        // Update local state
-        if let index = assignments.firstIndex(where: { $0.id == assignmentId }) {
-            assignments[index].status = .enRoute
-            assignments[index].acknowledgedAt = Date()
-        }
-        
-        if myAssignment?.id == assignmentId {
-            myAssignment?.status = .enRoute
-            myAssignment?.acknowledgedAt = Date()
-        }
+        try await updateAssignmentStatus(assignmentId: assignmentId, status: .enRoute)
     }
     
     /// Mark assignment as arrived
     func markArrived(assignmentId: UUID) async throws {
-        print("🎯 Marking arrived at assignment \(assignmentId)")
-        
-        _ = try await SupabaseRPCService.shared.updateAssignmentStatus(
-            assignmentId: assignmentId,
-            status: "arrived"
-        )
-        
-        print("✅ Status updated to arrived")
-        
-        // Update local state
-        if let index = assignments.firstIndex(where: { $0.id == assignmentId }) {
-            assignments[index].status = .arrived
-            assignments[index].arrivedAt = Date()
-        }
-        
-        if myAssignment?.id == assignmentId {
-            myAssignment?.status = .arrived
-            myAssignment?.arrivedAt = Date()
-            
-            // Clear my assignment after a delay
-            Task {
-                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
-                myAssignment = nil
-                showAssignmentNotification = false
-            }
-        }
+        try await updateAssignmentStatus(assignmentId: assignmentId, status: .arrived)
     }
-    
-    // MARK: - Navigation
     
     /// Open Apple Maps with turn-by-turn directions to assignment
     func startNavigation(to assignment: AssignedLocation) {
@@ -133,59 +134,13 @@ final class AssignmentService: ObservableObject {
         }
     }
     
-    // MARK: - Data Loading
-    
-    /// Load all assignments for an operation
-    func loadAssignments(for operationId: UUID) async throws {
-        print("📥 Loading assignments for operation \(operationId)")
-        
-        let loaded = try await SupabaseRPCService.shared.getOperationAssignments(
-            operationId: operationId
-        )
-        
-        assignments = loaded
-        
-        print("✅ Loaded \(loaded.count) assignment(s)")
-        
-        // Find my assignment
-        if let userId = AppState.shared.currentUserID {
-            let myActiveAssignments = assignments.filter { 
-                $0.assignedToUserId == userId && 
-                ($0.status == .assigned || $0.status == .enRoute)
-            }
-            
-            if let newAssignment = myActiveAssignments.first {
-                // Check if this is a new assignment
-                if myAssignment?.id != newAssignment.id {
-                    myAssignment = newAssignment
-                    showAssignmentNotification = true
-                    print("🔔 New assignment received: \(newAssignment.label ?? "Unknown")")
-                } else {
-                    myAssignment = newAssignment
-                }
-            } else if myAssignment != nil {
-                // Clear assignment if no longer active
-                myAssignment = nil
-                showAssignmentNotification = false
-            }
-        }
-    }
-    
-    /// Clear all assignment data (when leaving operation)
-    func clearAssignments() {
-        assignments = []
-        myAssignment = nil
-        showAssignmentNotification = false
-        print("🗑️ Cleared all assignments")
-    }
-    
     // MARK: - Distance Calculation
     
     /// Calculate distance from user location to assignment
     func distance(from userLocation: CLLocation, to assignment: AssignedLocation) -> CLLocationDistance {
         let assignedLocation = CLLocation(
-            latitude: assignment.lat,
-            longitude: assignment.lon
+            latitude: assignment.latitude,
+            longitude: assignment.longitude
         )
         return userLocation.distance(from: assignedLocation)
     }
@@ -200,29 +155,101 @@ final class AssignmentService: ObservableObject {
             return String(format: "%.1f km", dist / 1000)
         }
     }
-    
-    /// Check if user is near the assigned location
-    func isNearAssignment(
-        userLocation: CLLocation,
-        assignment: AssignedLocation,
-        threshold: CLLocationDistance = 50 // 50 meters
-    ) -> Bool {
-        distance(from: userLocation, to: assignment) <= threshold
+
+    // MARK: - Realtime Subscription
+
+    private func setupRealtimeSubscription(for operationId: UUID?) async {
+        // Unsubscribe from previous channel if any
+        realtimeService.unsubscribe(channelName: "db-changes-assigned-locations")
+
+        guard let operationId = operationId else {
+            await MainActor.run { self.assignedLocations = [] }
+            return
+        }
+
+        print("Setting up realtime subscription for assigned_locations on operation \(operationId)")
+
+        let channel = SupabaseClient.shared.client.channel("db-changes-assigned-locations")
+
+        let insertChanges = channel.postgresChange(
+            InsertAction.self,
+            schema: "public",
+            table: "assigned_locations",
+            filter: "operation_id=eq.\(operationId.uuidString)"
+        )
+
+        let updateChanges = channel.postgresChange(
+            UpdateAction.self,
+            schema: "public",
+            table: "assigned_locations",
+            filter: "operation_id=eq.\(operationId.uuidString)"
+        )
+
+        let deleteChanges = channel.postgresChange(
+            DeleteAction.self,
+            schema: "public",
+            table: "assigned_locations",
+            filter: "operation_id=eq.\(operationId.uuidString)"
+        )
+
+        Task {
+            for await change in insertChanges {
+                print("⚡️ Realtime: New assigned location inserted: \(change.record.id)")
+                await handleAssignmentChange(change.record)
+            }
+        }
+        .store(in: &cancellables) // Store the task to cancel on deinit
+
+        Task {
+            for await change in updateChanges {
+                print("⚡️ Realtime: Assigned location updated: \(change.record.id)")
+                await handleAssignmentChange(change.record)
+            }
+        }
+        .store(in: &cancellables)
+
+        Task {
+            for await change in deleteChanges {
+                print("⚡️ Realtime: Assigned location deleted: \(change.oldRecord.id)")
+                await handleAssignmentDelete(change.oldRecord)
+            }
+        }
+        .store(in: &cancellables)
+
+        await channel.subscribe()
+        print("✅ Realtime subscription for assigned_locations active.")
+
+        // Initial fetch after subscription is set up
+        await fetchAssignments(for: operationId)
     }
-    
-    // MARK: - Real-time Updates
-    
-    /// Subscribe to assignment updates for an operation
-    func subscribeToAssignments(operationId: UUID) {
-        // TODO: Implement Postgres Changes subscription
-        // Subscribe to INSERT/UPDATE on assigned_locations table
-        print("🔔 Subscribing to assignment updates for operation \(operationId)")
+
+    @MainActor
+    private func handleAssignmentChange(_ record: AssignedLocation) {
+        if let index = assignedLocations.firstIndex(where: { $0.id == record.id }) {
+            assignedLocations[index] = record // Update existing
+        } else {
+            assignedLocations.append(record) // Add new
+        }
     }
-    
-    /// Unsubscribe from assignment updates
-    func unsubscribeFromAssignments() {
-        // TODO: Implement unsubscribe
-        print("🔕 Unsubscribing from assignment updates")
+
+    @MainActor
+    private func handleAssignmentDelete(_ oldRecord: [String: Any]) {
+        if let idString = oldRecord["id"] as? String, let id = UUID(uuidString: idString) {
+            assignedLocations.removeAll { $0.id == id }
+        }
+    }
+
+    // MARK: - Error Handling
+
+    enum AssignmentError: LocalizedError {
+        case notFound(String)
+        case unknown(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .notFound(let message): return "Assignment Not Found: \(message)"
+            case .unknown(let message): return "Unknown Assignment Error: \(message)"
+            }
+        }
     }
 }
-

@@ -835,6 +835,48 @@ final class SupabaseRPCService: @unchecked Sendable {
         }
     }
     
+    /// Get all members of an operation (for assignment purposes)
+    nonisolated func getOperationMembers(operationId: UUID) async throws -> [User] {
+        struct MemberResponse: Decodable, Sendable {
+            let user_id: String
+            let full_name: String?
+            let callsign: String?
+            let vehicle_type: String?
+            let vehicle_color: String?
+        }
+        
+        let response: [MemberResponse] = try await client
+            .from("operation_members")
+            .select("user_id, users!inner(id, full_name, callsign, vehicle_type, vehicle_color)")
+            .eq("operation_id", value: operationId.uuidString)
+            .is("left_at", value: .null)
+            .execute()
+            .value
+        
+        return response.compactMap { member in
+            guard let userId = UUID(uuidString: member.user_id) else { return nil }
+            
+            // Parse vehicle type
+            let vehicleType: VehicleType
+            if let typeString = member.vehicle_type {
+                vehicleType = VehicleType(rawValue: typeString) ?? .sedan
+            } else {
+                vehicleType = .sedan
+            }
+            
+            return User(
+                id: userId,
+                email: "", // Not needed for assignment UI
+                teamId: UUID(), // Not needed
+                agencyId: UUID(), // Not needed
+                fullName: member.full_name,
+                callsign: member.callsign,
+                vehicleType: vehicleType.rawValue,
+                vehicleColor: member.vehicle_color
+            )
+        }
+    }
+    
     // MARK: - Fetch Operations
     
     /// Get all active operations in the system
