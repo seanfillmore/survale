@@ -266,6 +266,120 @@ final class SupabaseRPCService: @unchecked Sendable {
             .execute()
     }
     
+    // MARK: - Location Assignments
+    
+    /// Assign a location to a team member
+    nonisolated func assignLocation(
+        operationId: UUID,
+        assignedToUserId: UUID,
+        lat: Double,
+        lon: Double,
+        label: String?,
+        notes: String?
+    ) async throws -> AssignmentResponse {
+        struct AssignLocationParams: Encodable, Sendable {
+            let p_operation_id: String
+            let p_assigned_to_user_id: String
+            let p_lat: Double
+            let p_lon: Double
+            let p_label: String?
+            let p_notes: String?
+        }
+        
+        let params = AssignLocationParams(
+            p_operation_id: operationId.uuidString,
+            p_assigned_to_user_id: assignedToUserId.uuidString,
+            p_lat: lat,
+            p_lon: lon,
+            p_label: label,
+            p_notes: notes
+        )
+        
+        return try await client
+            .rpc("rpc_assign_location", params: params)
+            .execute()
+            .value
+    }
+    
+    /// Update assignment status (en_route, arrived, etc.)
+    nonisolated func updateAssignmentStatus(
+        assignmentId: UUID,
+        status: String
+    ) async throws -> AssignmentStatusResponse {
+        struct UpdateStatusParams: Encodable, Sendable {
+            let p_assignment_id: String
+            let p_status: String
+        }
+        
+        let params = UpdateStatusParams(
+            p_assignment_id: assignmentId.uuidString,
+            p_status: status
+        )
+        
+        return try await client
+            .rpc("rpc_update_assignment_status", params: params)
+            .execute()
+            .value
+    }
+    
+    /// Get all assignments for an operation
+    nonisolated func getOperationAssignments(operationId: UUID) async throws -> [AssignedLocation] {
+        struct GetAssignmentsParams: Encodable, Sendable {
+            let p_operation_id: String
+        }
+        
+        let params = GetAssignmentsParams(
+            p_operation_id: operationId.uuidString
+        )
+        
+        let rawData = try await client
+            .rpc("rpc_get_operation_assignments", params: params)
+            .execute()
+            .data
+        
+        // Decode from JSON array
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+            
+            // Fallback without fractional seconds
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+            
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Cannot decode date string: \(dateString)"
+            )
+        }
+        
+        return try decoder.decode([AssignedLocation].self, from: rawData)
+    }
+    
+    /// Cancel an assignment
+    nonisolated func cancelAssignment(assignmentId: UUID) async throws {
+        struct CancelParams: Encodable, Sendable {
+            let p_assignment_id: String
+        }
+        
+        let params = CancelParams(
+            p_assignment_id: assignmentId.uuidString
+        )
+        
+        try await client
+            .rpc("rpc_cancel_assignment", params: params)
+            .execute()
+    }
+    
     /// Request PDF export
     nonisolated func requestExportPDF(operationId: UUID, includeMaps: Bool) async throws -> UUID {
         struct RequestExportParams: Encodable, Sendable {
