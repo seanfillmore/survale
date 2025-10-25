@@ -887,13 +887,12 @@ final class SupabaseRPCService: @unchecked Sendable {
             
             return User(
                 id: userId,
-                email: "", // Not needed for assignment UI
-                teamId: UUID(), // Not needed
-                agencyId: UUID(), // Not needed
-                fullName: member.full_name,
+                email: member.full_name ?? "", // Using full_name as email placeholder
+                teamId: UUID(), // Not needed for assignment
+                agencyId: UUID(), // Not needed for assignment
                 callsign: member.callsign,
-                vehicleType: vehicleType.rawValue,
-                vehicleColor: member.vehicle_color
+                vehicleType: vehicleType,
+                vehicleColor: member.vehicle_color ?? "#808080" // Default gray
             )
         }
     }

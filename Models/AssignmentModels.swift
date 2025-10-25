@@ -1,100 +1,89 @@
 import Foundation
-import CoreLocation
+import MapKit // For CLLocationCoordinate2D
+import SwiftUI
+
+// MARK: - Assignment Status Enum
+
+enum AssignmentStatus: String, Codable, CaseIterable, Sendable {
+    case assigned = "assigned"
+    case enRoute = "en_route"
+    case arrived = "arrived"
+    case cancelled = "cancelled"
+
+    var displayName: String {
+        switch self {
+        case .assigned: return "Assigned"
+        case .enRoute: return "En Route"
+        case .arrived: return "Arrived"
+        case .cancelled: return "Cancelled"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .assigned: return "mappin.circle.fill"
+        case .enRoute: return "car.fill"
+        case .arrived: return "checkmark.circle.fill"
+        case .cancelled: return "xmark.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .assigned: return .blue
+        case .enRoute: return .orange
+        case .arrived: return .green
+        case .cancelled: return .red
+        }
+    }
+}
 
 // MARK: - Assigned Location Model
 
-struct AssignedLocation: Identifiable, Codable, Sendable {
+struct AssignedLocation: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
     let operationId: UUID
     let assignedByUserId: UUID
     let assignedToUserId: UUID
-    let lat: Double
-    let lon: Double
+    let latitude: Double
+    let longitude: Double
     let label: String?
     let notes: String?
     var status: AssignmentStatus
     let assignedAt: Date
-    var acknowledgedAt: Date?
-    var arrivedAt: Date?
-    
-    // Additional fields from RPC response
+    var updatedAt: Date?
+    var completedAt: Date?
+
+    // User details (fetched via JOIN in RPC)
+    var assignedToUserName: String?
     var assignedToCallsign: String?
-    var assignedToFullName: String?
-    
-    enum AssignmentStatus: String, Codable, Sendable {
-        case assigned = "assigned"
-        case enRoute = "en_route"
-        case arrived = "arrived"
-        case cancelled = "cancelled"
-        
-        var displayName: String {
-            switch self {
-            case .assigned: return "Assigned"
-            case .enRoute: return "En Route"
-            case .arrived: return "Arrived"
-            case .cancelled: return "Cancelled"
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .assigned: return "mappin.circle"
-            case .enRoute: return "arrow.triangle.turn.up.right.circle"
-            case .arrived: return "checkmark.circle"
-            case .cancelled: return "xmark.circle"
-            }
-        }
-        
-        var color: String {
-            switch self {
-            case .assigned: return "blue"
-            case .enRoute: return "orange"
-            case .arrived: return "green"
-            case .cancelled: return "gray"
-            }
-        }
-    }
-    
-    var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(latitude: lat, longitude: lon)
-    }
-    
-    var displayName: String {
-        assignedToCallsign ?? assignedToFullName ?? "Unknown"
-    }
-    
+    var assignedByUserName: String?
+    var assignedByCallsign: String?
+
     enum CodingKeys: String, CodingKey {
         case id
         case operationId = "operation_id"
         case assignedByUserId = "assigned_by_user_id"
         case assignedToUserId = "assigned_to_user_id"
-        case lat, lon, label, notes, status
+        case latitude = "lat"
+        case longitude = "lon"
+        case label
+        case notes
+        case status
         case assignedAt = "assigned_at"
-        case acknowledgedAt = "acknowledged_at"
-        case arrivedAt = "arrived_at"
+        case updatedAt = "updated_at"
+        case completedAt = "completed_at"
+        case assignedToUserName = "assigned_to_user_name"
         case assignedToCallsign = "assigned_to_callsign"
-        case assignedToFullName = "assigned_to_full_name"
+        case assignedByUserName = "assigned_by_user_name"
+        case assignedByCallsign = "assigned_by_callsign"
+    }
+
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    var displayName: String {
+        label ?? "\(String(format: "%.4f", latitude)), \(String(format: "%.4f", longitude))"
     }
 }
-
-// MARK: - Assignment Response Models
-
-struct AssignmentResponse: Codable {
-    let assignmentId: UUID
-    let assignedToCallsign: String?
-    let assignedToFullName: String?
-    let success: Bool
-    
-    enum CodingKeys: String, CodingKey {
-        case assignmentId = "assignment_id"
-        case assignedToCallsign = "assigned_to_callsign"
-        case assignedToFullName = "assigned_to_full_name"
-        case success
-    }
-}
-
-struct AssignmentStatusResponse: Codable {
-    let success: Bool
-    let status: String
-}
-
