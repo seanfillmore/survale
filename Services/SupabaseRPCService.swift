@@ -7,11 +7,28 @@
 
 import Foundation
 import Supabase
+import MapKit
 
 final class SupabaseRPCService: @unchecked Sendable {
     static let shared = SupabaseRPCService()
     
     private let client: SupabaseClient
+    
+    // MARK: - Assignment Response Models
+    
+    struct AssignmentResponse: Decodable, Sendable {
+        let assignment_id: String
+        let status: String
+    }
+    
+    struct AssignmentStatusResponse: Decodable, Sendable {
+        let assignment_id: String
+        let status: String
+        let updated_at: String
+        let completed_at: String?
+    }
+    
+    // MARK: - Image Models
     
     // Shared image item struct for encoding
     struct EncodableImageItem: Encodable, Sendable {
@@ -839,21 +856,25 @@ final class SupabaseRPCService: @unchecked Sendable {
     nonisolated func getOperationMembers(operationId: UUID) async throws -> [User] {
         struct MemberResponse: Decodable, Sendable {
             let user_id: String
+            let left_at: String?
             let full_name: String?
             let callsign: String?
             let vehicle_type: String?
             let vehicle_color: String?
         }
         
-        let response: [MemberResponse] = try await client
+        // Fetch all members (including left_at field) and filter in Swift
+        let allMembers: [MemberResponse] = try await client
             .from("operation_members")
-            .select("user_id, users!inner(id, full_name, callsign, vehicle_type, vehicle_color)")
+            .select("user_id, left_at, users!inner(id, full_name, callsign, vehicle_type, vehicle_color)")
             .eq("operation_id", value: operationId.uuidString)
-            .is("left_at", value: .null)
             .execute()
             .value
         
-        return response.compactMap { member in
+        // Filter only active members (left_at is null) in Swift since .is() doesn't work properly
+        let activeMembers = allMembers.filter { $0.left_at == nil }
+        
+        return activeMembers.compactMap { member -> User? in
             guard let userId = UUID(uuidString: member.user_id) else { return nil }
             
             // Parse vehicle type
