@@ -38,7 +38,7 @@ struct AssignLocationSheet: View {
                                     Text("[\(callsign)]")
                                         .fontWeight(.semibold)
                                 }
-                                Text(member.fullName ?? "Unknown")
+                                Text(member.email)
                             }
                             .tag(member.id as UUID?)
                         }
@@ -131,13 +131,12 @@ struct AssignLocationSheet: View {
         teamMembers: [
             User(
                 id: UUID(),
-                email: "test@example.com",
+                email: "john.doe@agency.gov",
                 teamId: UUID(),
                 agencyId: UUID(),
-                fullName: "John Doe",
                 callsign: "ALPHA-1",
-                vehicleType: "sedan",
-                vehicleColor: "black"
+                vehicleType: .sedan,
+                vehicleColor: "#000000"
             )
         ]
     )
