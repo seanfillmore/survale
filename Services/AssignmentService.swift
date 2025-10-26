@@ -45,10 +45,17 @@ final class AssignmentService: ObservableObject {
         // Immediately fetch all assignments to update local state
         await fetchAssignments(for: operationId)
 
-        // Find and return the newly assigned location
-        guard let newAssignment = assignedLocations.first(where: { $0.id.uuidString == response.assignment_id }) else {
-            throw AssignmentError.notFound("Newly assigned location not found after fetch.")
+        // Debug: Print all assignment IDs
+        print("🔍 Looking for assignment ID: \(response.assignment_id)")
+        print("🔍 Available assignments: \(assignedLocations.map { $0.id.uuidString })")
+
+        // Find and return the newly assigned location (case-insensitive comparison)
+        guard let newAssignment = assignedLocations.first(where: { 
+            $0.id.uuidString.lowercased() == response.assignment_id.lowercased() 
+        }) else {
+            throw AssignmentError.notFound("Newly assigned location not found after fetch. Looking for \(response.assignment_id), have \(assignedLocations.count) assignments.")
         }
+        print("✅ Found newly assigned location!")
         return newAssignment
     }
 

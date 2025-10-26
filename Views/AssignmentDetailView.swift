@@ -152,7 +152,7 @@ struct AssignmentDetailView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                    Text("I've Arrived")
+                                    Text("I Am Set")
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()

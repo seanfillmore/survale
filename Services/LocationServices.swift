@@ -107,7 +107,11 @@ final class LocationService: NSObject, ObservableObject {
             // Database insert will automatically trigger Postgres Changes subscription
             // in RealtimeService, notifying all connected clients
         } catch {
-            print("Failed to publish location to database: \(error)")
+            // Only log errors if we still have an active operation
+            // (Suppress errors when user logs out mid-publish)
+            if activeOperationId != nil {
+                print("❌ Failed to publish location to database: \(error)")
+            }
         }
     }
 }

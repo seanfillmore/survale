@@ -134,7 +134,8 @@ struct MapOperationView: View {
                     }
                     
                     // Assignment markers (blue pins with assigned member info)
-                    ForEach(assignmentService.assignedLocations) { assignment in
+                    // Hide "arrived" assignments to reduce clutter - user's real-time location shows their position
+                    ForEach(assignmentService.assignedLocations.filter { $0.status != .arrived }) { assignment in
                         Annotation(
                             assignment.label ?? "Assignment",
                             coordinate: assignment.coordinate
@@ -251,17 +252,30 @@ struct MapOperationView: View {
             await loadTargets()
             await loadTeamMembers()
             await subscribeToRealtimeUpdates()
+            
+            // Load assignments on initial view
+            if let operationId = appState.activeOperationID {
+                await assignmentService.fetchAssignments(for: operationId)
+                await assignmentService.subscribeToAssignments(operationId: operationId)
+            }
         }
         .onAppear {
-            // Reload targets when returning to map
+            // Reload targets, team members, and assignments when returning to map
             Task {
                 await loadTargets()
                 await loadTeamMembers()
+                
+                // Load assignments if there's an active operation
+                if let operationId = appState.activeOperationID {
+                    await assignmentService.fetchAssignments(for: operationId)
+                    await assignmentService.subscribeToAssignments(operationId: operationId)
+                }
             }
         }
         .onDisappear {
             Task {
                 await realtimeService.unsubscribeAll()
+                await assignmentService.unsubscribeFromAssignments()
                 loc.stopPublishing()
             }
         }
@@ -553,12 +567,25 @@ struct MapOperationView: View {
     // MARK: - Assignment Functions
     
     private var currentUserAssignment: AssignedLocation? {
-        guard let userId = appState.currentUserID else { return nil }
-        return assignmentService.assignedLocations.first { assignment in
+        guard let userId = appState.currentUserID else {
+            print("⚠️ No current user ID for assignment filtering")
+            return nil
+        }
+        
+        let myAssignment = assignmentService.assignedLocations.first { assignment in
             assignment.assignedToUserId == userId &&
             assignment.status != .arrived &&
             assignment.status != .cancelled
         }
+        
+        if myAssignment != nil {
+            print("✅ Found assignment for current user \(userId)")
+        } else if !assignmentService.assignedLocations.isEmpty {
+            print("ℹ️ No assignment for current user \(userId)")
+            print("   Available assignments for users: \(assignmentService.assignedLocations.map { $0.assignedToUserId })")
+        }
+        
+        return myAssignment
     }
     
     private var isCaseAgent: Bool {

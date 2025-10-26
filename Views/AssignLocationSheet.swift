@@ -40,30 +40,22 @@ struct AssignLocationSheet: View {
                         Picker("Team Member", selection: $selectedUserId) {
                             Text("Select member...").tag(nil as UUID?)
                             ForEach(teamMembers) { member in
-                                let displayText = {
-                                    if let callsign = member.callsign, !callsign.isEmpty {
-                                        return callsign
-                                    } else if !member.email.isEmpty {
-                                        return member.email
-                                    } else {
-                                        return "User \(member.id.uuidString.prefix(8))"
-                                    }
-                                }()
-                                
-                                Text(displayText)
+                                memberRow(for: member)
                                     .tag(member.id as UUID?)
                             }
                         }
-                        .pickerStyle(.navigationLink)
+                        .pickerStyle(.menu)
                     }
                 }
                 
                 Section("Details") {
                     TextField("Label (e.g., 'North Entry', 'OP-1')", text: $label)
                         .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
                     
                     TextField("Notes (optional)", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
+                        .autocorrectionDisabled()
                 }
                 
                 if let error {
@@ -150,6 +142,25 @@ struct AssignLocationSheet: View {
         isAssigning = false
     }
     
+    // MARK: - Helper Functions
+    
+    @ViewBuilder
+    private func memberRow(for member: User) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color(hex: member.vehicleColor) ?? .gray)
+                .frame(width: 12, height: 12)
+            
+            if let callsign = member.callsign, !callsign.isEmpty {
+                Text("\(callsign) (\(member.vehicleType.displayName))")
+            } else if !member.email.isEmpty {
+                Text("\(member.email) (\(member.vehicleType.displayName))")
+            } else {
+                Text("User \(member.id.uuidString.prefix(8)) (\(member.vehicleType.displayName))")
+            }
+        }
+    }
+    
     private func fetchAddress() async {
         let geocoder = CLGeocoder()
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
@@ -197,6 +208,34 @@ struct AssignLocationSheet: View {
             print("❌ Geocoding error: \(error)")
             address = "Address not available"
         }
+    }
+}
+
+// MARK: - Color Extension
+
+extension Color {
+    init?(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            return nil
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
     }
 }
 
