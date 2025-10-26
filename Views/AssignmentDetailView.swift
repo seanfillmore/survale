@@ -6,6 +6,7 @@ struct AssignmentDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var locationService = LocationService.shared
     @State private var cameraPosition: MapCameraPosition
+    @State private var showingInAppNavigation = false
     
     init(assignment: AssignedLocation) {
         self.assignment = assignment
@@ -108,20 +109,37 @@ struct AssignmentDetailView: View {
                     
                     // Actions
                     VStack(spacing: 12) {
-                        // Navigation button
+                        // In-app navigation button
                         Button {
-                            startNavigation()
+                            showingInAppNavigation = true
                         } label: {
                             HStack {
-                                Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
+                                Image(systemName: "map.fill")
                                     .font(.title3)
-                                Text("Start Navigation")
+                                Text("Navigate In-App")
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color.blue)
                             .foregroundStyle(.white)
+                            .cornerRadius(12)
+                        }
+                        
+                        // Apple Maps navigation button
+                        Button {
+                            startAppleMapsNavigation()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
+                                    .font(.title3)
+                                Text("Open in Apple Maps")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green.opacity(0.2))
+                            .foregroundStyle(.green)
                             .cornerRadius(12)
                         }
                         
@@ -187,9 +205,12 @@ struct AssignmentDetailView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $showingInAppNavigation) {
+            InAppNavigationView(assignment: assignment)
+        }
     }
     
-    private func startNavigation() {
+    private func startAppleMapsNavigation() {
         AssignmentService.shared.startNavigation(to: assignment)
         dismiss()
     }

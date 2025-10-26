@@ -4,9 +4,15 @@ import CoreLocation
 struct AssignmentBanner: View {
     let assignment: AssignedLocation
     @StateObject private var locationService = LocationService.shared
+    @StateObject private var routeService = RouteService.shared
     @State private var showingDetails = false
     
     var distanceText: String {
+        // Use route distance if available, otherwise straight-line distance
+        if let routeInfo = routeService.getRoute(for: assignment.id) {
+            return routeInfo.distanceText
+        }
+        
         guard let userLocation = locationService.lastLocation else {
             return "Calculating..."
         }
@@ -14,6 +20,14 @@ struct AssignmentBanner: View {
             from: userLocation,
             to: assignment
         )
+    }
+    
+    var etaText: String? {
+        // Only show ETA if we have a calculated route
+        guard let routeInfo = routeService.getRoute(for: assignment.id) else {
+            return nil
+        }
+        return routeInfo.travelTimeText
     }
     
     var statusColor: Color {
@@ -44,9 +58,16 @@ struct AssignmentBanner: View {
                         
                         Spacer()
                         
-                        Text(distanceText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            if let eta = etaText {
+                                Text(eta)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(statusColor)
+                            }
+                            Text(distanceText)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     
                     Text(assignment.label ?? "Assigned Location")

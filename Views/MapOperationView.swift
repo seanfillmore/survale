@@ -9,6 +9,7 @@ struct MapOperationView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var store = OperationStore.shared
     @ObservedObject private var assignmentService = AssignmentService.shared
+    @ObservedObject private var routeService = RouteService.shared
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.3349, longitude: -122.0090),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
@@ -158,6 +159,12 @@ struct MapOperationView: View {
                             }
                         }
                     }
+                    
+                    // Route polylines for active assignments
+                    ForEach(Array(routeService.activeRoutes.values)) { routeInfo in
+                        MapPolyline(routeInfo.polyline)
+                            .stroke(.blue, lineWidth: 4)
+                    }
                     }
                     .mapStyle(mapStyle)
                     .gesture(
@@ -258,6 +265,9 @@ struct MapOperationView: View {
                 await assignmentService.fetchAssignments(for: operationId)
                 await assignmentService.subscribeToAssignments(operationId: operationId)
             }
+            
+            // Calculate route for user's active assignment
+            await calculateRouteForCurrentUser()
         }
         .onAppear {
             // Reload targets, team members, and assignments when returning to map
@@ -286,6 +296,16 @@ struct MapOperationView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     navigationTarget = nil
                 }
+            }
+        }
+        .onChange(of: loc.lastLocation) { _, _ in
+            Task {
+                await updateRouteForCurrentUser()
+            }
+        }
+        .onChange(of: assignmentService.assignedLocations) { _, _ in
+            Task {
+                await calculateRouteForCurrentUser()
             }
         }
     }
@@ -627,6 +647,51 @@ struct MapOperationView: View {
             }
         } catch {
             print("❌ Failed to load team members: \(error)")
+        }
+    }
+    
+    // MARK: - Route Calculation
+    
+    /// Calculate route for current user's active assignment
+    private func calculateRouteForCurrentUser() async {
+        guard let assignment = currentUserAssignment,
+              let userLocation = loc.lastLocation?.coordinate else {
+            return
+        }
+        
+        // Only calculate routes for assigned or en route status
+        guard assignment.status == .assigned || assignment.status == .enRoute else {
+            return
+        }
+        
+        do {
+            let _ = try await routeService.calculateRoute(from: userLocation, to: assignment)
+            print("🗺️ Route calculated for current user")
+        } catch {
+            print("❌ Failed to calculate route: \(error)")
+        }
+    }
+    
+    /// Update route when location changes
+    private func updateRouteForCurrentUser() async {
+        guard let assignment = currentUserAssignment,
+              let userLocation = loc.lastLocation?.coordinate else {
+            // Clear route if no assignment or location
+            if let assignment = currentUserAssignment {
+                await routeService.clearRoute(assignmentId: assignment.id)
+            }
+            return
+        }
+        
+        // Only update routes for en route status
+        guard assignment.status == .enRoute else {
+            return
+        }
+        
+        do {
+            try await routeService.updateRoute(assignmentId: assignment.id, from: userLocation)
+        } catch {
+            print("❌ Failed to update route: \(error)")
         }
     }
 }
