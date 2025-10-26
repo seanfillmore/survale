@@ -147,6 +147,8 @@ struct MapOperationView: View {
                                     .foregroundColor(.white)
                                     .padding(8)
                                     .background(assignment.status.color, in: Circle())
+                                
+                                // Show callsign or ETA
                                 if let callsign = assignment.assignedToCallsign {
                                     Text(callsign)
                                         .font(.caption2)
@@ -156,14 +158,29 @@ struct MapOperationView: View {
                                         .background(Color.white)
                                         .cornerRadius(4)
                                 }
+                                
+                                // Show ETA for case agent
+                                if isCaseAgent, assignment.status == .enRoute {
+                                    if let routeInfo = routeService.getRoute(for: assignment.id) {
+                                        Text(routeInfo.travelTimeText)
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(assignment.status.color)
+                                            .cornerRadius(4)
+                                    }
+                                }
                             }
                         }
                     }
                     
-                    // Route polylines for active assignments
-                    ForEach(Array(routeService.activeRoutes.values)) { routeInfo in
-                        MapPolyline(routeInfo.polyline)
-                            .stroke(.blue, lineWidth: 4)
+                    // Route polylines - only show for current user's assignment (not for case agent)
+                    if !isCaseAgent, let myAssignment = currentUserAssignment {
+                        if let routeInfo = routeService.getRoute(for: myAssignment.id) {
+                            MapPolyline(routeInfo.polyline)
+                                .stroke(.blue, lineWidth: 4)
+                        }
                     }
                     }
                     .mapStyle(mapStyle)

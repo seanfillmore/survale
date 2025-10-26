@@ -116,30 +116,13 @@ struct AssignmentDetailView: View {
                             HStack {
                                 Image(systemName: "map.fill")
                                     .font(.title3)
-                                Text("Navigate In-App")
+                                Text("Start Navigation")
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(Color.blue)
                             .foregroundStyle(.white)
-                            .cornerRadius(12)
-                        }
-                        
-                        // Apple Maps navigation button
-                        Button {
-                            startAppleMapsNavigation()
-                        } label: {
-                            HStack {
-                                Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
-                                    .font(.title3)
-                                Text("Open in Apple Maps")
-                                    .fontWeight(.semibold)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green.opacity(0.2))
-                            .foregroundStyle(.green)
                             .cornerRadius(12)
                         }
                         
@@ -208,11 +191,6 @@ struct AssignmentDetailView: View {
         .fullScreenCover(isPresented: $showingInAppNavigation) {
             InAppNavigationView(assignment: assignment)
         }
-    }
-    
-    private func startAppleMapsNavigation() {
-        AssignmentService.shared.startNavigation(to: assignment)
-        dismiss()
     }
     
     private func acknowledgeAssignment() async {

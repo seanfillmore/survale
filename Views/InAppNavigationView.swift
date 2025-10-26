@@ -68,6 +68,29 @@ struct InAppNavigationView: View {
             
             // Navigation instructions overlay
             VStack(spacing: 0) {
+                // Back button
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "chevron.left")
+                                .font(.body.weight(.semibold))
+                            Text("Back")
+                                .font(.body)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(20)
+                    }
+                    .padding(.leading)
+                    .padding(.top, 8)
+                    
+                    Spacer()
+                }
+                
                 // Top instruction card
                 if let routeInfo = routeInfo, let instruction = routeInfo.nextTurnInstruction {
                     navigationInstructionCard(instruction: instruction, distance: routeInfo.distanceToNextTurn)
