@@ -105,7 +105,7 @@ struct AssignLocationSheet: View {
         do {
             try await AssignmentService.shared.assignLocation(
                 operationId: operationId,
-                toUserId: userId,
+                assignedToUserId: userId,
                 coordinate: coordinate,
                 label: label,
                 notes: notes.isEmpty ? nil : notes
