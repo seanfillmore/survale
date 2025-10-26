@@ -12,6 +12,7 @@ struct AssignLocationSheet: View {
     @State private var notes = ""
     @State private var isAssigning = false
     @State private var error: String?
+    @State private var address: String = "Loading address..."
     
     var body: some View {
         NavigationStack {
@@ -20,11 +21,12 @@ struct AssignLocationSheet: View {
                     HStack {
                         Image(systemName: "location.circle.fill")
                             .foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Latitude: \(coordinate.latitude, specifier: "%.6f")")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(address)
                                 .font(.subheadline)
-                            Text("Longitude: \(coordinate.longitude, specifier: "%.6f")")
-                                .font(.subheadline)
+                            Text("\(coordinate.latitude, specifier: "%.6f"), \(coordinate.longitude, specifier: "%.6f")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -103,6 +105,11 @@ struct AssignLocationSheet: View {
                 for member in teamMembers {
                     print("     - \(member.callsign ?? "no callsign") (\(member.email))")
                 }
+                
+                // Fetch address
+                Task {
+                    await fetchAddress()
+                }
             }
         }
     }
@@ -134,6 +141,55 @@ struct AssignLocationSheet: View {
         }
         
         isAssigning = false
+    }
+    
+    private func fetchAddress() async {
+        let geocoder = CLGeocoder()
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        
+        do {
+            let placemarks = try await geocoder.reverseGeocodeLocation(location)
+            
+            if let placemark = placemarks.first {
+                var components: [String] = []
+                
+                if let streetNumber = placemark.subThoroughfare {
+                    components.append(streetNumber)
+                }
+                if let street = placemark.thoroughfare {
+                    components.append(street)
+                }
+                
+                let firstLine = components.joined(separator: " ")
+                
+                var secondLineComponents: [String] = []
+                if let city = placemark.locality {
+                    secondLineComponents.append(city)
+                }
+                if let state = placemark.administrativeArea {
+                    secondLineComponents.append(state)
+                }
+                
+                let secondLine = secondLineComponents.joined(separator: ", ")
+                
+                if !firstLine.isEmpty && !secondLine.isEmpty {
+                    address = "\(firstLine), \(secondLine)"
+                } else if !firstLine.isEmpty {
+                    address = firstLine
+                } else if !secondLine.isEmpty {
+                    address = secondLine
+                } else {
+                    address = "Address not available"
+                }
+                
+                print("📍 Geocoded address: \(address)")
+            } else {
+                address = "Address not available"
+            }
+        } catch {
+            print("❌ Geocoding error: \(error)")
+            address = "Address not available"
+        }
     }
 }
 
