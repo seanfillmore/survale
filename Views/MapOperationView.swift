@@ -568,8 +568,14 @@ struct MapOperationView: View {
     
     private func handleMapLongPress(at coordinate: CLLocationCoordinate2D) {
         print("🗺️ Long press at coordinate: \(coordinate.latitude), \(coordinate.longitude)")
+        print("   Is case agent: \(isCaseAgent)")
+        print("   Team members loaded: \(teamMembers.count)")
+        print("   Active operation ID: \(appState.activeOperationID?.uuidString ?? "nil")")
+        
         selectedCoordinate = coordinate
         showingAssignmentSheet = true
+        
+        print("   Sheet should be showing now: \(showingAssignmentSheet)")
     }
     
     private func loadTeamMembers() async {
