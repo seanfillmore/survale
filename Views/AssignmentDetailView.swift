@@ -231,14 +231,13 @@ struct AssignmentDetailView: View {
             operationId: UUID(),
             assignedByUserId: UUID(),
             assignedToUserId: UUID(),
-            lat: 34.0522,
-            lon: -118.2437,
+            latitude: 34.0522,
+            longitude: -118.2437,
             label: "North Entry Point",
             notes: "Cover the north entrance and monitor all incoming vehicles",
             status: .assigned,
             assignedAt: Date().addingTimeInterval(-300), // 5 minutes ago
-            assignedToCallsign: "ALPHA-1",
-            assignedToFullName: "John Doe"
+            assignedToCallsign: "ALPHA-1"
         )
     )
 }
