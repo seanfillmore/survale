@@ -4,30 +4,21 @@ import Combine
 import MapKit
 import SwiftUI
 
+@MainActor
 final class AssignmentService: ObservableObject {
     static let shared = AssignmentService()
 
     @Published var assignedLocations: [AssignedLocation] = []
-    @Published var activeOperationId: UUID?
 
-    private var rpcService: SupabaseRPCService
-    private var realtimeService: RealtimeService
-    private var cancellables = Set<AnyCancellable>()
+    private let client: SupabaseClient
+    private var assignmentChannel: RealtimeChannelV2?
+    private var currentOperationId: UUID?
 
-    private init(rpcService: SupabaseRPCService = .shared, realtimeService: RealtimeService = .shared) {
-        self.rpcService = rpcService
-        self.realtimeService = realtimeService
-
-        // Observe active operation changes from RealtimeService
-        realtimeService.$activeOperationId
-            .sink { [weak self] newOperationId in
-                guard let self else { return }
-                if self.activeOperationId != newOperationId {
-                    self.activeOperationId = newOperationId
-                    Task { await self.setupRealtimeSubscription(for: newOperationId) }
-                }
-            }
-            .store(in: &cancellables)
+    private init() {
+        self.client = SupabaseClient(
+            supabaseURL: Secrets.supabaseURL,
+            supabaseKey: Secrets.anonKey
+        )
     }
 
     // MARK: - Public API
@@ -41,7 +32,7 @@ final class AssignmentService: ObservableObject {
         notes: String?
     ) async throws -> AssignedLocation {
         print("Attempting to assign location for operation \(operationId) to user \(assignedToUserId)")
-        let response = try await rpcService.assignLocation(
+        let response = try await SupabaseRPCService.shared.assignLocation(
             operationId: operationId,
             assignedToUserId: assignedToUserId,
             lat: coordinate.latitude,
@@ -52,7 +43,6 @@ final class AssignmentService: ObservableObject {
         print("✅ Location assigned: \(response.assignment_id)")
 
         // Immediately fetch all assignments to update local state
-        // This ensures the UI is updated even before realtime kicks in
         await fetchAssignments(for: operationId)
 
         // Find and return the newly assigned location
@@ -65,38 +55,36 @@ final class AssignmentService: ObservableObject {
     /// Updates the status of an assigned location.
     func updateAssignmentStatus(assignmentId: UUID, status: AssignmentStatus) async throws {
         print("Attempting to update assignment \(assignmentId) status to \(status.rawValue)")
-        _ = try await rpcService.updateAssignmentStatus(
+        _ = try await SupabaseRPCService.shared.updateAssignmentStatus(
             assignmentId: assignmentId,
             status: status.rawValue
         )
         print("✅ Assignment \(assignmentId) status updated to \(status.rawValue)")
-        await fetchAssignments(for: activeOperationId) // Refresh all to ensure consistency
+        await fetchAssignments(for: currentOperationId) // Refresh all to ensure consistency
     }
 
     /// Cancels an assigned location.
     func cancelAssignment(assignmentId: UUID) async throws {
         print("Attempting to cancel assignment \(assignmentId)")
-        try await rpcService.cancelAssignment(assignmentId: assignmentId)
+        try await SupabaseRPCService.shared.cancelAssignment(assignmentId: assignmentId)
         print("✅ Assignment \(assignmentId) cancelled")
-        await fetchAssignments(for: activeOperationId) // Refresh all to ensure consistency
+        await fetchAssignments(for: currentOperationId) // Refresh all to ensure consistency
     }
 
-    /// Fetches all assigned locations for the current active operation.
+    /// Fetches all assigned locations for an operation.
     func fetchAssignments(for operationId: UUID?) async {
         guard let operationId = operationId else {
-            await MainActor.run { self.assignedLocations = [] }
+            self.assignedLocations = []
             return
         }
         print("Fetching assigned locations for operation \(operationId)")
         do {
-            let fetched = try await rpcService.getOperationAssignments(operationId: operationId)
-            await MainActor.run {
-                self.assignedLocations = fetched
-                print("✅ Fetched \(fetched.count) assigned locations.")
-            }
+            let fetched = try await SupabaseRPCService.shared.getOperationAssignments(operationId: operationId)
+            self.assignedLocations = fetched
+            print("✅ Fetched \(fetched.count) assigned locations.")
         } catch {
             print("❌ Failed to fetch assigned locations: \(error)")
-            await MainActor.run { self.assignedLocations = [] }
+            self.assignedLocations = []
         }
     }
 
@@ -158,18 +146,19 @@ final class AssignmentService: ObservableObject {
 
     // MARK: - Realtime Subscription
 
-    private func setupRealtimeSubscription(for operationId: UUID?) async {
+    /// Subscribe to assignment updates for an operation
+    func subscribeToAssignments(operationId: UUID) async {
         // Unsubscribe from previous channel if any
-        realtimeService.unsubscribe(channelName: "db-changes-assigned-locations")
-
-        guard let operationId = operationId else {
-            await MainActor.run { self.assignedLocations = [] }
-            return
+        if let channel = assignmentChannel {
+            await channel.unsubscribe()
+            assignmentChannel = nil
         }
 
+        currentOperationId = operationId
+        
         print("Setting up realtime subscription for assigned_locations on operation \(operationId)")
 
-        let channel = SupabaseClient.shared.client.channel("db-changes-assigned-locations")
+        let channel = client.channel("db-changes-assigned-locations")
 
         let insertChanges = channel.postgresChange(
             InsertAction.self,
@@ -192,51 +181,44 @@ final class AssignmentService: ObservableObject {
             filter: "operation_id=eq.\(operationId.uuidString)"
         )
 
-        Task {
+        Task { @MainActor in
             for await change in insertChanges {
                 print("⚡️ Realtime: New assigned location inserted: \(change.record.id)")
-                await handleAssignmentChange(change.record)
+                await fetchAssignments(for: operationId)
             }
         }
-        .store(in: &cancellables) // Store the task to cancel on deinit
 
-        Task {
+        Task { @MainActor in
             for await change in updateChanges {
                 print("⚡️ Realtime: Assigned location updated: \(change.record.id)")
-                await handleAssignmentChange(change.record)
+                await fetchAssignments(for: operationId)
             }
         }
-        .store(in: &cancellables)
 
-        Task {
+        Task { @MainActor in
             for await change in deleteChanges {
-                print("⚡️ Realtime: Assigned location deleted: \(change.oldRecord.id)")
-                await handleAssignmentDelete(change.oldRecord)
+                print("⚡️ Realtime: Assigned location deleted")
+                await fetchAssignments(for: operationId)
             }
         }
-        .store(in: &cancellables)
 
         await channel.subscribe()
+        assignmentChannel = channel
         print("✅ Realtime subscription for assigned_locations active.")
 
         // Initial fetch after subscription is set up
         await fetchAssignments(for: operationId)
     }
-
-    @MainActor
-    private func handleAssignmentChange(_ record: AssignedLocation) {
-        if let index = assignedLocations.firstIndex(where: { $0.id == record.id }) {
-            assignedLocations[index] = record // Update existing
-        } else {
-            assignedLocations.append(record) // Add new
+    
+    /// Unsubscribe from assignment updates
+    func unsubscribeFromAssignments() async {
+        if let channel = assignmentChannel {
+            await channel.unsubscribe()
+            assignmentChannel = nil
+            print("🔕 Unsubscribed from assignment updates")
         }
-    }
-
-    @MainActor
-    private func handleAssignmentDelete(_ oldRecord: [String: Any]) {
-        if let idString = oldRecord["id"] as? String, let id = UUID(uuidString: idString) {
-            assignedLocations.removeAll { $0.id == id }
-        }
+        currentOperationId = nil
+        assignedLocations = []
     }
 
     // MARK: - Error Handling
