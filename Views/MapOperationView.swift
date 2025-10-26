@@ -20,10 +20,14 @@ struct MapOperationView: View {
     @State private var currentMapStyleType: MapStyleType = .standard
     
     // Assignment-related state
-    @State private var showingAssignmentSheet = false
-    @State private var assignmentCoordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: 0, longitude: 0)
-    @State private var assignmentOperationId: UUID = UUID()
+    @State private var assignmentData: AssignmentData?
     @State private var teamMembers: [User] = []
+    
+    struct AssignmentData: Identifiable {
+        let id = UUID()
+        let coordinate: CLLocationCoordinate2D
+        let operationId: UUID
+    }
     
     enum MapStyleType {
         case standard, hybrid, satellite
@@ -236,10 +240,10 @@ struct MapOperationView: View {
             }
         }
         .navigationTitle("Map")
-        .sheet(isPresented: $showingAssignmentSheet) {
+        .sheet(item: $assignmentData) { data in
             AssignLocationSheet(
-                coordinate: assignmentCoordinate,
-                operationId: assignmentOperationId,
+                coordinate: data.coordinate,
+                operationId: data.operationId,
                 teamMembers: teamMembers
             )
         }
@@ -576,13 +580,13 @@ struct MapOperationView: View {
             return
         }
         
-        // Update state variables synchronously
-        assignmentCoordinate = coordinate
-        assignmentOperationId = operationId
-        showingAssignmentSheet = true
+        // Create assignment data to trigger sheet
+        assignmentData = AssignmentData(
+            coordinate: coordinate,
+            operationId: operationId
+        )
         
-        print("   Captured - Coord: \(assignmentCoordinate.latitude), OpId: \(assignmentOperationId)")
-        print("   Sheet should be showing now: \(showingAssignmentSheet)")
+        print("   Created assignment data with coord: \(coordinate.latitude), opId: \(operationId)")
     }
     
     private func loadTeamMembers() async {
