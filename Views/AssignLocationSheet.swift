@@ -40,14 +40,18 @@ struct AssignLocationSheet: View {
                         Picker("Team Member", selection: $selectedUserId) {
                             Text("Select member...").tag(nil as UUID?)
                             ForEach(teamMembers) { member in
-                                HStack {
-                                    if let callsign = member.callsign {
-                                        Text("[\(callsign)]")
-                                            .fontWeight(.semibold)
+                                let displayText = {
+                                    if let callsign = member.callsign, !callsign.isEmpty {
+                                        return callsign
+                                    } else if !member.email.isEmpty {
+                                        return member.email
+                                    } else {
+                                        return "User \(member.id.uuidString.prefix(8))"
                                     }
-                                    Text(member.email)
-                                }
-                                .tag(member.id as UUID?)
+                                }()
+                                
+                                Text(displayText)
+                                    .tag(member.id as UUID?)
                             }
                         }
                         .pickerStyle(.navigationLink)
@@ -103,7 +107,10 @@ struct AssignLocationSheet: View {
                 print("   Coordinate: \(coordinate.latitude), \(coordinate.longitude)")
                 print("   Team members: \(teamMembers.count)")
                 for member in teamMembers {
-                    print("     - \(member.callsign ?? "no callsign") (\(member.email))")
+                    print("     - ID: \(member.id)")
+                    print("       Callsign: '\(member.callsign ?? "nil")'")
+                    print("       Email: '\(member.email)'")
+                    print("       VehicleType: \(member.vehicleType)")
                 }
                 
                 // Fetch address
