@@ -14,7 +14,7 @@ struct AssignLocationSheet: View {
     @State private var error: String?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Location") {
                     HStack {
