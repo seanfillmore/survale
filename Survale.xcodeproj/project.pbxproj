@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		45107E742EAD636700E337C9 /* AssignmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E732EAD636700E337C9 /* AssignmentModels.swift */; };
+		45107E762EAD63B100E337C9 /* AssignmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E752EAD63B100E337C9 /* AssignmentService.swift */; };
+		45107E782EAD64A000E337C9 /* AssignLocationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E772EAD64A000E337C9 /* AssignLocationSheet.swift */; };
+		45107E7A2EADA59D00E337C9 /* AssignmentBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E792EADA59D00E337C9 /* AssignmentBanner.swift */; };
+		45107E7C2EADA5E400E337C9 /* AssignmentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E7B2EADA5E400E337C9 /* AssignmentDetailView.swift */; };
+		45107E7E2EAED55D00E337C9 /* RouteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E7D2EAED55C00E337C9 /* RouteService.swift */; };
+		45107E802EAED59F00E337C9 /* InAppNavigationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */; };
 		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
 		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
 		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
@@ -49,6 +56,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		45107E732EAD636700E337C9 /* AssignmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignmentModels.swift; sourceTree = "<group>"; };
+		45107E752EAD63B100E337C9 /* AssignmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignmentService.swift; sourceTree = "<group>"; };
+		45107E772EAD64A000E337C9 /* AssignLocationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignLocationSheet.swift; sourceTree = "<group>"; };
+		45107E792EADA59D00E337C9 /* AssignmentBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignmentBanner.swift; sourceTree = "<group>"; };
+		45107E7B2EADA5E400E337C9 /* AssignmentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignmentDetailView.swift; sourceTree = "<group>"; };
+		45107E7D2EAED55C00E337C9 /* RouteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteService.swift; sourceTree = "<group>"; };
+		45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppNavigationView.swift; sourceTree = "<group>"; };
 		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
 		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
 		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
@@ -155,6 +169,10 @@
 		45B42B232EA2E16000DF32CD /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */,
+				45107E7B2EADA5E400E337C9 /* AssignmentDetailView.swift */,
+				45107E792EADA59D00E337C9 /* AssignmentBanner.swift */,
+				45107E772EAD64A000E337C9 /* AssignLocationSheet.swift */,
 				4532AE442EA69C1600649F04 /* CameraView.swift */,
 				4532AE422EA5DDCF00649F04 /* ActiveOperationDetailView.swift */,
 				4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */,
@@ -186,6 +204,8 @@
 		45B42B402EA30CA100DF32CD /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				45107E7D2EAED55C00E337C9 /* RouteService.swift */,
+				45107E752EAD63B100E337C9 /* AssignmentService.swift */,
 				4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */,
 				45B42B662EA403E800DF32CD /* RealtimeService.swift */,
 				45B42B642EA3FF6C00DF32CD /* SupabaseRPCService.swift */,
@@ -198,6 +218,7 @@
 		45B42B4D2EA329A400DF32CD /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				45107E732EAD636700E337C9 /* AssignmentModels.swift */,
 				45B42B5C2EA3DDD400DF32CD /* OpTargetModels.swift */,
 				45B42B4E2EA329B100DF32CD /* OperationModels.swift */,
 			);
@@ -297,6 +318,7 @@
 				45B42B3F2EA3041100DF32CD /* ResetPasswordView.swift in Sources */,
 				45B42B1E2EA2E13D00DF32CD /* RootView.swift in Sources */,
 				45B42B1F2EA2E13D00DF32CD /* MainTabsView.swift in Sources */,
+				45107E742EAD636700E337C9 /* AssignmentModels.swift in Sources */,
 				45B42B202EA2E13D00DF32CD /* ChatView.swift in Sources */,
 				45B42B672EA403EA00DF32CD /* RealtimeService.swift in Sources */,
 				45B42B252EA2E8E900DF32CD /* AppState.swift in Sources */,
@@ -304,20 +326,26 @@
 				45B42B3D2EA303ED00DF32CD /* SignUpView.swift in Sources */,
 				4532AE432EA5DDCF00649F04 /* ActiveOperationDetailView.swift in Sources */,
 				45B42B612EA3E98100DF32CD /* Operation.swift in Sources */,
+				45107E802EAED59F00E337C9 /* InAppNavigationView.swift in Sources */,
 				45B42B652EA3FF6C00DF32CD /* SupabaseRPCService.swift in Sources */,
 				45B42B212EA2E13D00DF32CD /* MapOperationView.swift in Sources */,
 				45B42B6F2EA593AB00DF32CD /* EditOperationView.swift in Sources */,
+				45107E782EAD64A000E337C9 /* AssignLocationSheet.swift in Sources */,
 				45B42B462EA3221500DF32CD /* OperationStore.swift in Sources */,
 				45B42B692EA48AE000DF32CD /* AddressSearchField.swift in Sources */,
 				45B42B572EA3C01F00DF32CD /* OpTargetImageManager.swift in Sources */,
 				4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */,
 				45B42B6D2EA5939800DF32CD /* OperationDetailView.swift in Sources */,
 				45B42B222EA2E13D00DF32CD /* SettingsView.swift in Sources */,
+				45107E762EAD63B100E337C9 /* AssignmentService.swift in Sources */,
 				4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */,
 				45B42B482EA3224D00DF32CD /* CreateOperationView.swift in Sources */,
+				45107E7A2EADA59D00E337C9 /* AssignmentBanner.swift in Sources */,
 				4532AE452EA69C1600649F04 /* CameraView.swift in Sources */,
 				45B42B422EA30CB700DF32CD /* LocationServices.swift in Sources */,
+				45107E7C2EADA5E400E337C9 /* AssignmentDetailView.swift in Sources */,
 				45B42B5F2EA3DF4400DF32CD /* OpTargetKind.swift in Sources */,
+				45107E7E2EAED55D00E337C9 /* RouteService.swift in Sources */,
 				45B42B362EA2FAB000DF32CD /* Secrets.swift in Sources */,
 				45B42B5B2EA3DB0F00DF32CD /* OpTargetEditorView.swift in Sources */,
 			);

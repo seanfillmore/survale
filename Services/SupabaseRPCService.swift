@@ -7,11 +7,28 @@
 
 import Foundation
 import Supabase
+import MapKit
 
 final class SupabaseRPCService: @unchecked Sendable {
     static let shared = SupabaseRPCService()
     
     private let client: SupabaseClient
+    
+    // MARK: - Assignment Response Models
+    
+    struct AssignmentResponse: Decodable, Sendable {
+        let assignment_id: String
+        let status: String
+    }
+    
+    struct AssignmentStatusResponse: Decodable, Sendable {
+        let assignment_id: String
+        let status: String
+        let updated_at: String
+        let completed_at: String?
+    }
+    
+    // MARK: - Image Models
     
     // Shared image item struct for encoding
     struct EncodableImageItem: Encodable, Sendable {
@@ -263,6 +280,120 @@ final class SupabaseRPCService: @unchecked Sendable {
         
         try await client
             .rpc("rpc_tag_export_segments", params: params)
+            .execute()
+    }
+    
+    // MARK: - Location Assignments
+    
+    /// Assign a location to a team member
+    nonisolated func assignLocation(
+        operationId: UUID,
+        assignedToUserId: UUID,
+        lat: Double,
+        lon: Double,
+        label: String?,
+        notes: String?
+    ) async throws -> AssignmentResponse {
+        struct AssignLocationParams: Encodable, Sendable {
+            let operation_id: String
+            let assigned_to_user_id: String
+            let lat: Double
+            let lon: Double
+            let label: String?
+            let notes: String?
+        }
+        
+        let params = AssignLocationParams(
+            operation_id: operationId.uuidString,
+            assigned_to_user_id: assignedToUserId.uuidString,
+            lat: lat,
+            lon: lon,
+            label: label,
+            notes: notes
+        )
+        
+        return try await client
+            .rpc("rpc_assign_location", params: params)
+            .execute()
+            .value
+    }
+    
+    /// Update assignment status (en_route, arrived, etc.)
+    nonisolated func updateAssignmentStatus(
+        assignmentId: UUID,
+        status: String
+    ) async throws -> AssignmentStatusResponse {
+        struct UpdateStatusParams: Encodable, Sendable {
+            let assignment_id: String
+            let new_status: String
+        }
+        
+        let params = UpdateStatusParams(
+            assignment_id: assignmentId.uuidString,
+            new_status: status
+        )
+        
+        return try await client
+            .rpc("rpc_update_assignment_status", params: params)
+            .execute()
+            .value
+    }
+    
+    /// Get all assignments for an operation
+    nonisolated func getOperationAssignments(operationId: UUID) async throws -> [AssignedLocation] {
+        struct GetAssignmentsParams: Encodable, Sendable {
+            let operation_id: String
+        }
+        
+        let params = GetAssignmentsParams(
+            operation_id: operationId.uuidString
+        )
+        
+        let rawData = try await client
+            .rpc("rpc_get_operation_assignments", params: params)
+            .execute()
+            .data
+        
+        // Decode from JSON array
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+            
+            // Fallback without fractional seconds
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: dateString) {
+                return date
+            }
+            
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Cannot decode date string: \(dateString)"
+            )
+        }
+        
+        return try decoder.decode([AssignedLocation].self, from: rawData)
+    }
+    
+    /// Cancel an assignment
+    nonisolated func cancelAssignment(assignmentId: UUID) async throws {
+        struct CancelParams: Encodable, Sendable {
+            let assignment_id: String
+        }
+        
+        let params = CancelParams(
+            assignment_id: assignmentId.uuidString
+        )
+        
+        try await client
+            .rpc("rpc_cancel_assignment", params: params)
             .execute()
     }
     
@@ -718,6 +849,78 @@ final class SupabaseRPCService: @unchecked Sendable {
                     caption: imageData.caption
                 )
             }
+        }
+    }
+    
+    /// Get all members of an operation (for assignment purposes)
+    nonisolated func getOperationMembers(operationId: UUID) async throws -> [User] {
+        // First, get all member user IDs for this operation
+        struct MemberRecord: Decodable, Sendable {
+            let user_id: String
+            let left_at: String?
+        }
+        
+        let members: [MemberRecord] = try await client
+            .from("operation_members")
+            .select("user_id, left_at")
+            .eq("operation_id", value: operationId.uuidString)
+            .execute()
+            .value
+        
+        // Filter to active members only
+        let activeUserIds = members
+            .filter { $0.left_at == nil }
+            .compactMap { UUID(uuidString: $0.user_id) }
+        
+        guard !activeUserIds.isEmpty else {
+            print("⚠️ No active members found for operation \(operationId)")
+            return []
+        }
+        
+        print("📋 Found \(activeUserIds.count) active member IDs, fetching user details...")
+        
+        // Now fetch user details for these IDs
+        struct UserRecord: Decodable, Sendable {
+            let id: String
+            let email: String?
+            let full_name: String?
+            let callsign: String?
+            let vehicle_type: String?
+            let vehicle_color: String?
+        }
+        
+        let userIdStrings = activeUserIds.map { $0.uuidString }
+        let users: [UserRecord] = try await client
+            .from("users")
+            .select("id, email, full_name, callsign, vehicle_type, vehicle_color")
+            .in("id", values: userIdStrings)
+            .execute()
+            .value
+        
+        print("✅ Fetched \(users.count) user records")
+        
+        return users.compactMap { userRecord -> User? in
+            guard let userId = UUID(uuidString: userRecord.id) else { return nil }
+            
+            // Parse vehicle type
+            let vehicleType: VehicleType
+            if let typeString = userRecord.vehicle_type {
+                vehicleType = VehicleType(rawValue: typeString) ?? .sedan
+            } else {
+                vehicleType = .sedan
+            }
+            
+            print("   User: \(userRecord.full_name ?? "no name"), callsign: \(userRecord.callsign ?? "none"), email: \(userRecord.email ?? "none")")
+            
+            return User(
+                id: userId,
+                email: userRecord.email ?? "",
+                teamId: UUID(), // Not needed for assignment
+                agencyId: UUID(), // Not needed for assignment
+                callsign: userRecord.callsign,
+                vehicleType: vehicleType,
+                vehicleColor: userRecord.vehicle_color ?? "#808080"
+            )
         }
     }
     

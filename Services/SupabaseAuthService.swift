@@ -42,6 +42,11 @@ final class SupabaseAuthService {
     func signOut() async throws {
         try await client.auth.signOut()
         
+        // Stop location publishing immediately
+        await MainActor.run {
+            LocationService.shared.stopPublishing()
+        }
+        
         // Clear user context and active operation
         await MainActor.run {
             appState?.currentUser = nil

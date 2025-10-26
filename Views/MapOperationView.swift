@@ -8,6 +8,8 @@ struct MapOperationView: View {
     @ObservedObject private var realtimeService = RealtimeService.shared
     @EnvironmentObject var appState: AppState
     @ObservedObject private var store = OperationStore.shared
+    @ObservedObject private var assignmentService = AssignmentService.shared
+    @ObservedObject private var routeService = RouteService.shared
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.3349, longitude: -122.0090),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
@@ -18,12 +20,30 @@ struct MapOperationView: View {
     @State private var locationTrails: [UUID: [LocationPoint]] = [:]
     @State private var currentMapStyleType: MapStyleType = .standard
     
+    // Assignment-related state
+    @State private var assignmentData: AssignmentData?
+    @State private var teamMembers: [User] = []
+    
+    struct AssignmentData: Identifiable {
+        let id = UUID()
+        let coordinate: CLLocationCoordinate2D
+        let operationId: UUID
+    }
+    
     enum MapStyleType {
         case standard, hybrid, satellite
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // Show assignment banner for current user's assignments
+            if let myAssignment = currentUserAssignment {
+                AssignmentBanner(assignment: myAssignment)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color(uiColor: .systemBackground))
+            }
+            
             if needsPermissionUI {
                 permissionCard
             }
@@ -51,7 +71,9 @@ struct MapOperationView: View {
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
                 }
-                Map(position: $mapPosition, interactionModes: .all) {
+                
+                MapReader { proxy in
+                    Map(position: $mapPosition, interactionModes: .all) {
                     // User location (distinct from team members)
                     if let userLocation = loc.lastLocation {
                         Annotation("You", coordinate: userLocation.coordinate) {
@@ -111,8 +133,71 @@ struct MapOperationView: View {
                                 .tint(.green)
                         }
                     }
-                }
-                .mapStyle(mapStyle)
+                    
+                    // Assignment markers (blue pins with assigned member info)
+                    // Hide "arrived" assignments to reduce clutter - user's real-time location shows their position
+                    ForEach(assignmentService.assignedLocations.filter { $0.status != .arrived }) { assignment in
+                        Annotation(
+                            assignment.label ?? "Assignment",
+                            coordinate: assignment.coordinate
+                        ) {
+                            VStack(spacing: 2) {
+                                Image(systemName: assignment.status.icon)
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                    .padding(8)
+                                    .background(assignment.status.color, in: Circle())
+                                
+                                // Show callsign or ETA
+                                if let callsign = assignment.assignedToCallsign {
+                                    Text(callsign)
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.white)
+                                        .cornerRadius(4)
+                                }
+                                
+                                // Show ETA for case agent
+                                if isCaseAgent, assignment.status == .enRoute {
+                                    if let routeInfo = routeService.getRoute(for: assignment.id) {
+                                        Text(routeInfo.travelTimeText)
+                                            .font(.caption2.bold())
+                                            .foregroundStyle(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(assignment.status.color)
+                                            .cornerRadius(4)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Route polylines - only show for current user's assignment (not for case agent)
+                    if !isCaseAgent, let myAssignment = currentUserAssignment {
+                        if let routeInfo = routeService.getRoute(for: myAssignment.id) {
+                            MapPolyline(routeInfo.polyline)
+                                .stroke(.blue, lineWidth: 4)
+                        }
+                    }
+                    }
+                    .mapStyle(mapStyle)
+                    .gesture(
+                        LongPressGesture(minimumDuration: 0.5)
+                            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                            .onEnded { value in
+                                guard case .second(true, let drag?) = value else { return }
+                                guard isCaseAgent else {
+                                    print("⚠️ Only case agents can assign locations")
+                                    return
+                                }
+                                if let coordinate = proxy.convert(drag.location, from: .local) {
+                                    handleMapLongPress(at: coordinate)
+                                }
+                            }
+                    )
                 .mapControls {
                     MapUserLocationButton()
                     MapCompass()
@@ -169,6 +254,7 @@ struct MapOperationView: View {
                     .padding(.trailing, 12)
                     .padding(.bottom, 20)
                 }
+                } // Close MapReader
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button(action: { showTrails.toggle() }) {
@@ -179,19 +265,44 @@ struct MapOperationView: View {
             }
         }
         .navigationTitle("Map")
+        .sheet(item: $assignmentData) { data in
+            AssignLocationSheet(
+                coordinate: data.coordinate,
+                operationId: data.operationId,
+                teamMembers: teamMembers
+            )
+        }
         .task {
             await loadTargets()
+            await loadTeamMembers()
             await subscribeToRealtimeUpdates()
+            
+            // Load assignments on initial view
+            if let operationId = appState.activeOperationID {
+                await assignmentService.fetchAssignments(for: operationId)
+                await assignmentService.subscribeToAssignments(operationId: operationId)
+            }
+            
+            // Calculate route for user's active assignment
+            await calculateRouteForCurrentUser()
         }
         .onAppear {
-            // Reload targets when returning to map
+            // Reload targets, team members, and assignments when returning to map
             Task {
                 await loadTargets()
+                await loadTeamMembers()
+                
+                // Load assignments if there's an active operation
+                if let operationId = appState.activeOperationID {
+                    await assignmentService.fetchAssignments(for: operationId)
+                    await assignmentService.subscribeToAssignments(operationId: operationId)
+                }
             }
         }
         .onDisappear {
             Task {
                 await realtimeService.unsubscribeAll()
+                await assignmentService.unsubscribeFromAssignments()
                 loc.stopPublishing()
             }
         }
@@ -202,6 +313,16 @@ struct MapOperationView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     navigationTarget = nil
                 }
+            }
+        }
+        .onChange(of: loc.lastLocation) { _, _ in
+            Task {
+                await updateRouteForCurrentUser()
+            }
+        }
+        .onChange(of: assignmentService.assignedLocations) { _, _ in
+            Task {
+                await calculateRouteForCurrentUser()
             }
         }
     }
@@ -477,6 +598,117 @@ struct MapOperationView: View {
             return "Hybrid"
         case .satellite:
             return "Satellite"
+        }
+    }
+    
+    // MARK: - Assignment Functions
+    
+    private var currentUserAssignment: AssignedLocation? {
+        guard let userId = appState.currentUserID else {
+            print("⚠️ No current user ID for assignment filtering")
+            return nil
+        }
+        
+        let myAssignment = assignmentService.assignedLocations.first { assignment in
+            assignment.assignedToUserId == userId &&
+            assignment.status != .arrived &&
+            assignment.status != .cancelled
+        }
+        
+        if myAssignment != nil {
+            print("✅ Found assignment for current user \(userId)")
+        } else if !assignmentService.assignedLocations.isEmpty {
+            print("ℹ️ No assignment for current user \(userId)")
+            print("   Available assignments for users: \(assignmentService.assignedLocations.map { $0.assignedToUserId })")
+        }
+        
+        return myAssignment
+    }
+    
+    private var isCaseAgent: Bool {
+        guard let operation = appState.activeOperation else {
+            return false
+        }
+        return operation.createdByUserId == appState.currentUserID
+    }
+    
+    private func handleMapLongPress(at coordinate: CLLocationCoordinate2D) {
+        print("🗺️ Long press at coordinate: \(coordinate.latitude), \(coordinate.longitude)")
+        print("   Is case agent: \(isCaseAgent)")
+        print("   Team members loaded: \(teamMembers.count)")
+        print("   Active operation ID: \(appState.activeOperationID?.uuidString ?? "nil")")
+        
+        // Verify we have required data before showing sheet
+        guard let operationId = appState.activeOperationID else {
+            print("⚠️ Cannot assign: no active operation")
+            return
+        }
+        
+        // Create assignment data to trigger sheet
+        assignmentData = AssignmentData(
+            coordinate: coordinate,
+            operationId: operationId
+        )
+        
+        print("   Created assignment data with coord: \(coordinate.latitude), opId: \(operationId)")
+    }
+    
+    private func loadTeamMembers() async {
+        guard let operationId = appState.activeOperationID else { return }
+        
+        do {
+            let members = try await SupabaseRPCService.shared.getOperationMembers(operationId: operationId)
+            await MainActor.run {
+                self.teamMembers = members
+                print("👥 Loaded \(members.count) team members for assignment")
+            }
+        } catch {
+            print("❌ Failed to load team members: \(error)")
+        }
+    }
+    
+    // MARK: - Route Calculation
+    
+    /// Calculate route for current user's active assignment
+    private func calculateRouteForCurrentUser() async {
+        guard let assignment = currentUserAssignment,
+              let userLocation = loc.lastLocation?.coordinate else {
+            return
+        }
+        
+        // Only calculate routes for assigned or en route status
+        guard assignment.status == .assigned || assignment.status == .enRoute else {
+            return
+        }
+        
+        do {
+            let _ = try await routeService.calculateRoute(from: userLocation, to: assignment)
+            print("🗺️ Route calculated for current user")
+        } catch {
+            print("❌ Failed to calculate route: \(error)")
+        }
+    }
+    
+    /// Update route when location changes
+    private func updateRouteForCurrentUser() async {
+        guard let assignment = currentUserAssignment,
+              let userLocation = loc.lastLocation?.coordinate else {
+            // Clear route if no assignment or location
+            if let assignment = currentUserAssignment {
+                await routeService.clearRoute(assignmentId: assignment.id)
+            }
+            return
+        }
+        
+        // Only update routes for en route status
+        guard assignment.status == .enRoute else {
+            return
+        }
+        
+        do {
+            try await routeService.updateRoute(assignmentId: assignment.id, from: userLocation)
+        } catch {
+            print("❌ Failed to update route: \(error)")
         }
     }
 }
