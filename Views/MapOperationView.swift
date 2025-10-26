@@ -560,7 +560,7 @@ struct MapOperationView: View {
     }
     
     private var isCaseAgent: Bool {
-        guard let operation = store.activeOperations.first(where: { $0.id == appState.activeOperationID }) else {
+        guard let operation = appState.activeOperation else {
             return false
         }
         return operation.caseAgentId == appState.currentUserID
