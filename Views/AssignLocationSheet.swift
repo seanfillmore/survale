@@ -30,20 +30,26 @@ struct AssignLocationSheet: View {
                 }
                 
                 Section("Assign To") {
-                    Picker("Team Member", selection: $selectedUserId) {
-                        Text("Select member...").tag(nil as UUID?)
-                        ForEach(teamMembers) { member in
-                            HStack {
-                                if let callsign = member.callsign {
-                                    Text("[\(callsign)]")
-                                        .fontWeight(.semibold)
+                    if teamMembers.isEmpty {
+                        Text("No team members available")
+                            .foregroundStyle(.secondary)
+                            .font(.footnote)
+                    } else {
+                        Picker("Team Member", selection: $selectedUserId) {
+                            Text("Select member...").tag(nil as UUID?)
+                            ForEach(teamMembers) { member in
+                                HStack {
+                                    if let callsign = member.callsign {
+                                        Text("[\(callsign)]")
+                                            .fontWeight(.semibold)
+                                    }
+                                    Text(member.email)
                                 }
-                                Text(member.email)
+                                .tag(member.id as UUID?)
                             }
-                            .tag(member.id as UUID?)
                         }
+                        .pickerStyle(.navigationLink)
                     }
-                    .pickerStyle(.navigationLink)
                 }
                 
                 Section("Details") {
@@ -87,6 +93,15 @@ struct AssignLocationSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                }
+            }
+            .onAppear {
+                print("📍 AssignLocationSheet appeared")
+                print("   Operation ID: \(operationId)")
+                print("   Coordinate: \(coordinate.latitude), \(coordinate.longitude)")
+                print("   Team members: \(teamMembers.count)")
+                for member in teamMembers {
+                    print("     - \(member.callsign ?? "no callsign") (\(member.email))")
                 }
             }
         }
