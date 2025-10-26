@@ -579,9 +579,13 @@ struct MapOperationView: View {
         // Capture values in @State variables for sheet
         selectedCoordinate = coordinate
         selectedOperationId = operationId
-        showingAssignmentSheet = true
         
-        print("   Sheet should be showing now: \(showingAssignmentSheet)")
+        // Small delay to ensure state is updated before sheet presents
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
+            showingAssignmentSheet = true
+            print("   Sheet should be showing now: \(showingAssignmentSheet)")
+        }
     }
     
     private func loadTeamMembers() async {
