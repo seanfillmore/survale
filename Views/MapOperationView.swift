@@ -22,6 +22,7 @@ struct MapOperationView: View {
     // Assignment-related state
     @State private var showingAssignmentSheet = false
     @State private var selectedCoordinate: CLLocationCoordinate2D?
+    @State private var selectedOperationId: UUID? // Capture operation ID at press time
     @State private var teamMembers: [User] = []
     
     enum MapStyleType {
@@ -236,12 +237,27 @@ struct MapOperationView: View {
         }
         .navigationTitle("Map")
         .sheet(isPresented: $showingAssignmentSheet) {
-            // Force unwrap since we verify these exist before setting showingAssignmentSheet
-            AssignLocationSheet(
-                coordinate: selectedCoordinate!,
-                operationId: appState.activeOperationID!,
-                teamMembers: teamMembers
-            )
+            if let coordinate = selectedCoordinate,
+               let operationId = selectedOperationId {
+                AssignLocationSheet(
+                    coordinate: coordinate,
+                    operationId: operationId,
+                    teamMembers: teamMembers
+                )
+                .onAppear {
+                    print("📍 AssignLocationSheet presented successfully")
+                }
+            } else {
+                // This shouldn't happen due to guard, but provide fallback
+                Text("Error: Missing required data")
+                    .onAppear {
+                        print("❌ Sheet missing data - coordinate: \(selectedCoordinate != nil), opId: \(selectedOperationId != nil)")
+                        // Auto-dismiss
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            showingAssignmentSheet = false
+                        }
+                    }
+            }
         }
         .task {
             await loadTargets()
@@ -571,12 +587,14 @@ struct MapOperationView: View {
         print("   Active operation ID: \(appState.activeOperationID?.uuidString ?? "nil")")
         
         // Verify we have required data before showing sheet
-        guard appState.activeOperationID != nil else {
+        guard let operationId = appState.activeOperationID else {
             print("⚠️ Cannot assign: no active operation")
             return
         }
         
+        // Capture values in @State variables for sheet
         selectedCoordinate = coordinate
+        selectedOperationId = operationId
         showingAssignmentSheet = true
         
         print("   Sheet should be showing now: \(showingAssignmentSheet)")
