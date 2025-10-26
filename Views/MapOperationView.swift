@@ -21,8 +21,8 @@ struct MapOperationView: View {
     
     // Assignment-related state
     @State private var showingAssignmentSheet = false
-    @State private var selectedCoordinate: CLLocationCoordinate2D?
-    @State private var selectedOperationId: UUID? // Capture operation ID at press time
+    @State private var assignmentCoordinate: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: 0, longitude: 0)
+    @State private var assignmentOperationId: UUID = UUID()
     @State private var teamMembers: [User] = []
     
     enum MapStyleType {
@@ -238,8 +238,8 @@ struct MapOperationView: View {
         .navigationTitle("Map")
         .sheet(isPresented: $showingAssignmentSheet) {
             AssignLocationSheet(
-                coordinate: selectedCoordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0),
-                operationId: selectedOperationId ?? UUID(),
+                coordinate: assignmentCoordinate,
+                operationId: assignmentOperationId,
                 teamMembers: teamMembers
             )
         }
@@ -576,16 +576,13 @@ struct MapOperationView: View {
             return
         }
         
-        // Capture values in @State variables for sheet
-        selectedCoordinate = coordinate
-        selectedOperationId = operationId
+        // Update state variables synchronously
+        assignmentCoordinate = coordinate
+        assignmentOperationId = operationId
+        showingAssignmentSheet = true
         
-        // Small delay to ensure state is updated before sheet presents
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
-            showingAssignmentSheet = true
-            print("   Sheet should be showing now: \(showingAssignmentSheet)")
-        }
+        print("   Captured - Coord: \(assignmentCoordinate.latitude), OpId: \(assignmentOperationId)")
+        print("   Sheet should be showing now: \(showingAssignmentSheet)")
     }
     
     private func loadTeamMembers() async {
