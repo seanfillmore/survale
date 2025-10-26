@@ -563,7 +563,7 @@ struct MapOperationView: View {
         guard let operation = appState.activeOperation else {
             return false
         }
-        return operation.caseAgentId == appState.currentUserID
+        return operation.createdByUserId == appState.currentUserID
     }
     
     private func handleMapLongPress(at coordinate: CLLocationCoordinate2D) {
