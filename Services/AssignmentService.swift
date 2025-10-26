@@ -183,14 +183,14 @@ final class AssignmentService: ObservableObject {
 
         Task { @MainActor in
             for await change in insertChanges {
-                print("⚡️ Realtime: New assigned location inserted: \(change.record.id)")
+                print("⚡️ Realtime: New assigned location inserted")
                 await fetchAssignments(for: operationId)
             }
         }
 
         Task { @MainActor in
             for await change in updateChanges {
-                print("⚡️ Realtime: Assigned location updated: \(change.record.id)")
+                print("⚡️ Realtime: Assigned location updated")
                 await fetchAssignments(for: operationId)
             }
         }
