@@ -236,35 +236,12 @@ struct MapOperationView: View {
         }
         .navigationTitle("Map")
         .sheet(isPresented: $showingAssignmentSheet) {
-            Group {
-                if let coordinate = selectedCoordinate,
-                   let operationId = appState.activeOperationID {
-                    AssignLocationSheet(
-                        coordinate: coordinate,
-                        operationId: operationId,
-                        teamMembers: teamMembers
-                    )
-                } else {
-                    // Debug view to see what's missing
-                    VStack(spacing: 20) {
-                        Text("Debug: Sheet Data")
-                            .font(.title)
-                        Text("Coordinate: \(selectedCoordinate != nil ? "✅" : "❌")")
-                        Text("Operation ID: \(appState.activeOperationID != nil ? "✅" : "❌")")
-                        Text("Team Members: \(teamMembers.count)")
-                        Button("Close") {
-                            showingAssignmentSheet = false
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding()
-                    .onAppear {
-                        print("⚠️ Sheet appeared but missing data!")
-                        print("   selectedCoordinate: \(selectedCoordinate?.latitude ?? 0), \(selectedCoordinate?.longitude ?? 0)")
-                        print("   activeOperationID: \(appState.activeOperationID?.uuidString ?? "nil")")
-                    }
-                }
-            }
+            // Force unwrap since we verify these exist before setting showingAssignmentSheet
+            AssignLocationSheet(
+                coordinate: selectedCoordinate!,
+                operationId: appState.activeOperationID!,
+                teamMembers: teamMembers
+            )
         }
         .task {
             await loadTargets()
@@ -592,6 +569,12 @@ struct MapOperationView: View {
         print("   Is case agent: \(isCaseAgent)")
         print("   Team members loaded: \(teamMembers.count)")
         print("   Active operation ID: \(appState.activeOperationID?.uuidString ?? "nil")")
+        
+        // Verify we have required data before showing sheet
+        guard appState.activeOperationID != nil else {
+            print("⚠️ Cannot assign: no active operation")
+            return
+        }
         
         selectedCoordinate = coordinate
         showingAssignmentSheet = true
