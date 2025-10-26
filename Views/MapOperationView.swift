@@ -237,27 +237,11 @@ struct MapOperationView: View {
         }
         .navigationTitle("Map")
         .sheet(isPresented: $showingAssignmentSheet) {
-            if let coordinate = selectedCoordinate,
-               let operationId = selectedOperationId {
-                AssignLocationSheet(
-                    coordinate: coordinate,
-                    operationId: operationId,
-                    teamMembers: teamMembers
-                )
-                .onAppear {
-                    print("📍 AssignLocationSheet presented successfully")
-                }
-            } else {
-                // This shouldn't happen due to guard, but provide fallback
-                Text("Error: Missing required data")
-                    .onAppear {
-                        print("❌ Sheet missing data - coordinate: \(selectedCoordinate != nil), opId: \(selectedOperationId != nil)")
-                        // Auto-dismiss
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            showingAssignmentSheet = false
-                        }
-                    }
-            }
+            AssignLocationSheet(
+                coordinate: selectedCoordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                operationId: selectedOperationId ?? UUID(),
+                teamMembers: teamMembers
+            )
         }
         .task {
             await loadTargets()
