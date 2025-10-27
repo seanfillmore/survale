@@ -24,6 +24,10 @@ struct ActiveOperationDetailView: View {
     @State private var pendingRequests: [JoinRequest] = []
     @State private var showingJoinRequests = false
     @State private var isRefreshing = false
+    @State private var showingEndConfirm = false
+    @State private var showingTransferSheet = false
+    @State private var showingLeaveConfirm = false
+    @State private var operationMembers: [User] = []
     
     var body: some View {
         ScrollView {
@@ -213,6 +217,71 @@ struct ActiveOperationDetailView: View {
                         .padding(.vertical, 40)
                     }
                 }
+                
+                // Operation management buttons
+                if isYourActiveOperation && isMember {
+                    VStack(spacing: 12) {
+                        Divider()
+                            .padding(.vertical)
+                        
+                        // Transfer Operation button (case agent only)
+                        if isCaseAgent {
+                            Button {
+                                showingTransferSheet = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "arrow.triangle.swap")
+                                    Text("Transfer Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundStyle(.orange)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // Leave Operation button (team members only, not case agent)
+                        if !isCaseAgent {
+                            Button {
+                                showingLeaveConfirm = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    Text("Leave Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundStyle(.orange)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // End Operation button (case agent only)
+                        if isCaseAgent {
+                            Button {
+                                showingEndConfirm = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "xmark.circle.fill")
+                                    Text("End Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red.opacity(0.1))
+                                .foregroundStyle(.red)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                }
             }
             .padding(.bottom, 20)
         }
@@ -233,8 +302,32 @@ struct ActiveOperationDetailView: View {
         .refreshable {
             await refreshData()
         }
+        .sheet(isPresented: $showingTransferSheet) {
+            TransferOperationSheet(operation: operation, members: operationMembers)
+        }
+        .alert("Leave Operation", isPresented: $showingLeaveConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Leave", role: .destructive) {
+                Task {
+                    await leaveOperation()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to leave this operation? You will need to request to rejoin if you change your mind.")
+        }
+        .alert("End Operation", isPresented: $showingEndConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("End Operation", role: .destructive) {
+                Task {
+                    await endOperation()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to end this operation? All members will be removed and the operation will be moved to Previous Operations.")
+        }
         .task {
             await loadOperationData()
+            await loadOperationMembers()
             if isCaseAgent {
                 await loadJoinRequests()
             }
@@ -325,6 +418,60 @@ struct ActiveOperationDetailView: View {
             }
         } catch {
             print("❌ Failed to load operation data: \(error)")
+        }
+    }
+    
+    private func loadOperationMembers() async {
+        do {
+            let members = try await SupabaseRPCService.shared.getOperationMembers(operationId: operation.id)
+            await MainActor.run {
+                self.operationMembers = members
+                print("👥 Loaded \(members.count) operation members")
+            }
+        } catch {
+            print("❌ Failed to load operation members: \(error)")
+        }
+    }
+    
+    private func leaveOperation() async {
+        guard let userId = appState.currentUserID else { return }
+        
+        do {
+            try await SupabaseRPCService.shared.leaveOperation(operationId: operation.id, userId: userId)
+            
+            // Clear active operation from app state
+            await MainActor.run {
+                appState.activeOperationID = nil
+                appState.activeOperation = nil
+            }
+            
+            // Reload operations list
+            await OperationStore.shared.loadOperations(for: userId)
+            
+            print("✅ Left operation successfully")
+        } catch {
+            print("❌ Failed to leave operation: \(error)")
+        }
+    }
+    
+    private func endOperation() async {
+        do {
+            try await SupabaseRPCService.shared.endOperation(operationId: operation.id)
+            
+            // Clear active operation from app state
+            await MainActor.run {
+                appState.activeOperationID = nil
+                appState.activeOperation = nil
+            }
+            
+            // Reload operations list
+            if let userId = appState.currentUserID {
+                await OperationStore.shared.loadOperations(for: userId)
+            }
+            
+            print("✅ Operation ended successfully")
+        } catch {
+            print("❌ Failed to end operation: \(error)")
         }
     }
     

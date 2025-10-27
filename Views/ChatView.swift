@@ -2,7 +2,7 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import UIKit
-
+ 
 struct ChatView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject private var realtimeService = RealtimeService.shared
@@ -75,17 +75,18 @@ struct ChatView: View {
                 }
             }
 
-            // Message input
-            HStack(spacing: 12) {
-                // Media options button
-                Button {
-                    print("📷 Camera available: \(CameraPermissionHelper.isCameraAvailable)")
-                    showingMediaOptions = true
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.blue)
-                }
+            // Message input - only show when there's an active operation
+            if appState.activeOperationID != nil {
+                HStack(spacing: 12) {
+                    // Media options button
+                    Button {
+                        print("📷 Camera available: \(CameraPermissionHelper.isCameraAvailable)")
+                        showingMediaOptions = true
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                    }
                 .confirmationDialog("Add Media", isPresented: $showingMediaOptions) {
                     Button("Take Photo or Video") {
                         print("📸 Opening camera")
@@ -134,6 +135,7 @@ struct ChatView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background(Color(.systemBackground))
+            }
         }
         .navigationTitle("Messages")
         .navigationBarTitleDisplayMode(.inline)

@@ -10,21 +10,29 @@ struct OperationsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // All active operations (with edit/swipe for user's active op)
-                activeOperationsSection
-                
-                // Previous operations
-                if !store.previousOperations.isEmpty {
-                    previousOperationsSection
+            Group {
+                // If user is in an active operation, show its details
+                if let activeOp = activeOperation {
+                    ActiveOperationDetailView(operation: activeOp)
+                } else {
+                    // Otherwise show list of operations to join
+                    List {
+                        // All active operations
+                        activeOperationsSection
+                        
+                        // Previous operations
+                        if !store.previousOperations.isEmpty {
+                            previousOperationsSection
+                        }
+                    }
+                    .refreshable {
+                        if let userID = appState.currentUserID {
+                            await store.loadOperations(for: userID)
+                        }
+                    }
                 }
             }
-            .refreshable {
-                if let userID = appState.currentUserID {
-                    await store.loadOperations(for: userID)
-                }
-            }
-            .navigationTitle("Operations")
+            .navigationTitle(activeOperation != nil ? "Active Operation" : "Operations")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
