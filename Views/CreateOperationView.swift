@@ -797,7 +797,8 @@ struct StagingEditor: View {
     @State private var zipCode = ""
     @State private var latitude: Double?
     @State private var longitude: Double?
-    @State private var editingStagingId: UUID?
+    @State private var editingStagingIndex: Int?
+    @State private var showingEditor = false
 
     var body: some View {
         Form {
@@ -808,23 +809,13 @@ struct StagingEditor: View {
                         .filter { !$0.isEmpty }
                         .joined(separator: ", ")
                     
-                    let newStaging = StagingPoint(
-                        id: editingStagingId ?? UUID(),
+                    staging.append(.init(
+                        id: UUID(),
                         label: label.isEmpty ? "Staging" : label,
                         address: fullAddress.isEmpty ? address : fullAddress,
                         lat: latitude,
                         lng: longitude
-                    )
-                    
-                    if let editingId = editingStagingId,
-                       let index = staging.firstIndex(where: { $0.id == editingId }) {
-                        // Update existing
-                        staging[index] = newStaging
-                        editingStagingId = nil
-                    } else {
-                        // Add new
-                        staging.append(newStaging)
-                    }
+                    ))
                     
                     // Clear form
                     label = ""
@@ -835,8 +826,8 @@ struct StagingEditor: View {
                     longitude = nil
                 } label: {
                     HStack {
-                        Image(systemName: editingStagingId == nil ? "plus.circle.fill" : "checkmark.circle.fill")
-                        Text(editingStagingId == nil ? "Add Staging Point" : "Update Staging Point")
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add Staging Point")
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
@@ -845,32 +836,9 @@ struct StagingEditor: View {
                           address.trimmingCharacters(in: .whitespaces).isEmpty ||
                           latitude == nil || longitude == nil)
                 .buttonStyle(.borderedProminent)
-                .tint(editingStagingId == nil ? .blue : .green)
-                
-                if editingStagingId != nil {
-                    Button {
-                        // Cancel editing
-                        editingStagingId = nil
-                        label = ""
-                        address = ""
-                        city = ""
-                        zipCode = ""
-                        latitude = nil
-                        longitude = nil
-                    } label: {
-                        HStack {
-                            Image(systemName: "xmark.circle")
-                            Text("Cancel Editing")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
-                }
             }
             
-            Section(editingStagingId == nil ? "Staging Location" : "Edit Staging Location") {
+            Section("New Staging Location") {
                 TextField("Label (e.g., 'North Parking')", text: $label)
                 
                 AddressSearchField(
@@ -889,41 +857,24 @@ struct StagingEditor: View {
 
             if !staging.isEmpty {
                 Section("Added Staging Points (\(staging.count))") {
-                    ForEach(staging) { s in
+                    ForEach(Array(staging.enumerated()), id: \.element.id) { index, s in
                         Button {
-                            // Load staging point for editing
-                            editingStagingId = s.id
-                            label = s.label
-                            address = s.address
-                            latitude = s.lat
-                            longitude = s.lng
-                            
-                            // Parse city and zip from address if possible
-                            let components = s.address.components(separatedBy: ", ")
-                            if components.count >= 2 {
-                                city = components.count >= 2 ? components[components.count - 2] : ""
-                                zipCode = components.last ?? ""
-                            }
+                            editingStagingIndex = index
+                            showingEditor = true
                         } label: {
                             HStack {
+                                Image(systemName: "mappin.circle.fill")
+                                    .foregroundStyle(.blue)
+                                    .frame(width: 30)
+                                
                                 VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Image(systemName: "mappin.circle.fill")
-                                            .foregroundStyle(.blue)
-                                        Text(s.label)
-                                            .font(.headline)
-                                            .foregroundStyle(.primary)
-                                        
-                                        if editingStagingId == s.id {
-                                            Text("(Editing)")
-                                                .font(.caption)
-                                                .foregroundStyle(.green)
-                                        }
-                                    }
+                                    Text(s.label)
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    
                                     Text(s.address)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
-                                        .padding(.leading, 24)
                                 }
                                 
                                 Spacer()
@@ -936,21 +887,13 @@ struct StagingEditor: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    .onDelete { 
-                        staging.remove(atOffsets: $0)
-                        // Clear editing state if deleted item was being edited
-                        if let editingId = editingStagingId,
-                           !staging.contains(where: { $0.id == editingId }) {
-                            editingStagingId = nil
-                            label = ""
-                            address = ""
-                            city = ""
-                            zipCode = ""
-                            latitude = nil
-                            longitude = nil
-                        }
-                    }
+                    .onDelete { staging.remove(atOffsets: $0) }
                 }
+            }
+        }
+        .sheet(isPresented: $showingEditor) {
+            if let index = editingStagingIndex {
+                StagingPointEditorView(stagingPoint: $staging[index])
             }
         }
     }
