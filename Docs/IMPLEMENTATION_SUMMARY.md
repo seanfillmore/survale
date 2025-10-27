@@ -152,23 +152,28 @@
 
 ## 🗄️ Database Changes Required
 
-Run these SQL scripts in your Supabase SQL Editor:
+Run these SQL scripts in your Supabase SQL Editor **in this order**:
 
-1. **`update_create_operation_for_drafts.sql`**
+1. **`add_updated_at_column.sql`** ⭐ **RUN THIS FIRST**
+   - Adds `updated_at` column to operations table
+   - Creates trigger to auto-update timestamp
+   - Required for drafts feature
+
+2. **`update_create_operation_for_drafts.sql`**
    - Updates `rpc_create_operation` to handle drafts
    - Adds `is_draft` parameter
 
-2. **`create_get_draft_operations.sql`**
+3. **`create_get_draft_operations.sql`**
    - Creates `rpc_get_draft_operations` function
    - Returns user's draft operations
 
-3. **`create_templates_schema.sql`**
+4. **`create_templates_schema.sql`**
    - Creates `operation_templates` table
    - Creates `template_targets` table
    - Creates `template_staging_points` table
    - Sets up RLS policies
 
-4. **`fix_add_operation_members_v3.sql`** (if not already run)
+5. **`fix_add_operation_members_v3.sql`** (if not already run)
    - Fixes `rpc_add_operation_members` function
    - Resolves ambiguous column references
 
