@@ -11,15 +11,7 @@ struct TransferOperationSheet: View {
     @State private var error: String?
     
     var body: some View {
-        let _ = print("📋 TransferOperationSheet: Received \(members.count) members")
-        let _ = members.forEach { member in
-            print("   Member: \(member.callsign ?? "no callsign") (\(member.email)) - ID: \(member.id)")
-        }
-        let _ = print("   Current user ID: \(appState.currentUserID?.uuidString ?? "nil")")
-        let filteredMembers = members.filter { $0.id != appState.currentUserID }
-        let _ = print("   After filtering current user: \(filteredMembers.count) members")
-        
-        return NavigationView {
+        NavigationView {
             Form {
                 Section {
                     Text("Transfer case agent responsibilities to another team member. You will become a regular member of the operation.")
