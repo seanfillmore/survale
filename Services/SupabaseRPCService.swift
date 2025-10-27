@@ -923,8 +923,11 @@ final class SupabaseRPCService: @unchecked Sendable {
         struct UserRecord: Decodable, Sendable {
             let id: String
             let email: String?
+            let first_name: String?
+            let last_name: String?
             let full_name: String?
             let callsign: String?
+            let phone_number: String?
             let vehicle_type: String?
             let vehicle_color: String?
         }
@@ -932,7 +935,7 @@ final class SupabaseRPCService: @unchecked Sendable {
         let userIdStrings = activeUserIds.map { $0.uuidString }
         let users: [UserRecord] = try await client
             .from("users")
-            .select("id, email, full_name, callsign, vehicle_type, vehicle_color")
+            .select("id, email, first_name, last_name, full_name, callsign, phone_number, vehicle_type, vehicle_color")
             .in("id", values: userIdStrings)
             .execute()
             .value
@@ -950,14 +953,17 @@ final class SupabaseRPCService: @unchecked Sendable {
                 vehicleType = .sedan
             }
             
-            print("   User: \(userRecord.full_name ?? "no name"), callsign: \(userRecord.callsign ?? "none"), email: \(userRecord.email ?? "none")")
+            print("   User: \(userRecord.full_name ?? "no name"), callsign: \(userRecord.callsign ?? "none"), email: \(userRecord.email ?? "none"), phone: \(userRecord.phone_number ?? "none")")
             
             return User(
                 id: userId,
                 email: userRecord.email ?? "",
                 teamId: UUID(), // Not needed for assignment
                 agencyId: UUID(), // Not needed for assignment
+                firstName: userRecord.first_name,
+                lastName: userRecord.last_name,
                 callsign: userRecord.callsign,
+                phoneNumber: userRecord.phone_number,
                 vehicleType: vehicleType,
                 vehicleColor: userRecord.vehicle_color ?? "#808080"
             )

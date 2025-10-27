@@ -2,7 +2,7 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import UIKit
- 
+
 struct ChatView: View {
     @EnvironmentObject var appState: AppState
     // OPTIMIZATION: Access directly without observation (only method calls, no @Published properties)
