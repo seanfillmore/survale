@@ -4,13 +4,17 @@ import MapKit
 struct MapOperationView: View {
     @Binding var navigationTarget: MapNavigationTarget?
     
+    // CRITICAL: Only observe services that publish UI-relevant data
     @ObservedObject private var loc = LocationService.shared
     @ObservedObject private var realtimeService = RealtimeService.shared
-    @EnvironmentObject var appState: AppState
-    @ObservedObject private var store = OperationStore.shared
     @ObservedObject private var assignmentService = AssignmentService.shared
-    @ObservedObject private var routeService = RouteService.shared
-    @ObservedObject private var dataCache = OperationDataCache.shared
+    
+    @EnvironmentObject var appState: AppState
+    
+    // OPTIMIZATION: Access directly without observation (no @Published properties used in UI)
+    private let store = OperationStore.shared
+    private let routeService = RouteService.shared
+    private let dataCache = OperationDataCache.shared
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.3349, longitude: -122.0090),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
