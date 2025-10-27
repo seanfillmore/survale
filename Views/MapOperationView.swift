@@ -319,7 +319,10 @@ struct MapOperationView: View {
                 // Enable map rendering after data is loaded
                 isMapReady = true
                 
-                // Defer network operations to not block animation
+                // CRITICAL: Load team members fresh (needed for assignments)
+                await loadTeamMembers()
+                
+                // Defer other network operations to not block animation
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms delay
                 
                 if let operationId = appState.activeOperationID {
@@ -716,16 +719,26 @@ struct MapOperationView: View {
     }
     
     private func loadTeamMembers() async {
-        guard let operationId = appState.activeOperationID else { return }
+        guard let operationId = appState.activeOperationID else {
+            print("⚠️ Cannot load team members: no active operation")
+            return
+        }
+        
+        print("🔄 MapOperationView: Fetching team members for operation \(operationId)")
         
         do {
             let members = try await SupabaseRPCService.shared.getOperationMembers(operationId: operationId)
+            print("✅ MapOperationView: Received \(members.count) team members from database")
+            for (index, member) in members.enumerated() {
+                print("   [\(index + 1)] \(member.callsign ?? "No callsign") - \(member.email)")
+            }
+            
             await MainActor.run {
                 self.teamMembers = members
-                print("👥 Loaded \(members.count) team members for assignment")
+                print("✅ MapOperationView: Updated local teamMembers array to \(members.count) members")
             }
         } catch {
-            print("❌ Failed to load team members: \(error)")
+            print("❌ MapOperationView: Failed to load team members: \(error)")
         }
     }
     
