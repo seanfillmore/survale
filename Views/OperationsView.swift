@@ -212,7 +212,7 @@ struct OperationsView: View {
     private var previousOperationsSection: some View {
         Section("Previous Operations") {
             ForEach(store.previousOperations) { op in
-                NavigationLink(destination: OperationDetailView(operation: op)) {
+                NavigationLink(destination: ActiveOperationDetailView(operation: op)) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(op.name)
                             .font(.headline)
