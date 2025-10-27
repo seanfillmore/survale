@@ -1458,17 +1458,34 @@ final class SupabaseRPCService: @unchecked Sendable {
             .execute()
             .value
         
-        print("🔄 Loaded \(responses.count) templates (scope: \(scope))")
+        print("🔄 Loaded \(responses.count) raw template responses (scope: \(scope))")
         
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        return responses.compactMap { response in
-            guard let id = UUID(uuidString: response.id),
-                  let createdByUserId = UUID(uuidString: response.created_by_user_id),
-                  let createdAt = dateFormatter.date(from: response.created_at) else {
+        let templates = responses.compactMap { response -> OperationTemplate? in
+            print("📋 Processing template: \(response.name)")
+            print("   ID: \(response.id)")
+            print("   Created by: \(response.created_by_user_id)")
+            print("   Created at: \(response.created_at)")
+            print("   Target count: \(response.target_count)")
+            
+            guard let id = UUID(uuidString: response.id) else {
+                print("   ❌ Failed to parse template ID")
                 return nil
             }
+            
+            guard let createdByUserId = UUID(uuidString: response.created_by_user_id) else {
+                print("   ❌ Failed to parse created_by_user_id")
+                return nil
+            }
+            
+            guard let createdAt = dateFormatter.date(from: response.created_at) else {
+                print("   ❌ Failed to parse created_at date: \(response.created_at)")
+                return nil
+            }
+            
+            print("   ✅ Template parsed successfully")
             
             return OperationTemplate(
                 id: id,
@@ -1484,6 +1501,9 @@ final class SupabaseRPCService: @unchecked Sendable {
                 staging: []  // Load separately when template is selected
             )
         }
+        
+        print("✅ Successfully parsed \(templates.count) templates")
+        return templates
     }
 }
 
