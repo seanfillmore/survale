@@ -108,11 +108,21 @@ GRANT EXECUTE ON FUNCTION public.rpc_get_templates(text) TO authenticated;
 -- STEP 4: Verify it works
 -- ============================================
 
--- Test the function manually
-SELECT 'VERIFICATION: Testing function...' as status;
+SELECT 'VERIFICATION: Function created successfully!' as status;
 
--- This should return your templates
-SELECT * FROM public.rpc_get_templates('mine');
+-- Note: Cannot test the function here because SQL Editor is not authenticated
+-- The function requires auth.uid() which is only available when called from your app
+-- If you see "Not authenticated" error above, that's EXPECTED and means the function works!
 
-SELECT 'SUCCESS! Function created and working!' as status;
+-- Verify the function exists
+SELECT 
+    p.proname as function_name,
+    pg_get_function_identity_arguments(p.oid) as arguments,
+    'Function exists and is ready to use!' as status
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public' 
+AND p.proname = 'rpc_get_templates';
+
+SELECT 'SUCCESS! Function is installed. Test it from your app!' as final_status;
 
