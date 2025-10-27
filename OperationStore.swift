@@ -68,6 +68,10 @@ final class OperationStore: ObservableObject {
             // Add to local list
             operations.insert(operation, at: 0)
             
+            // Add creator as member (they created it, so they're automatically a member)
+            memberOperationIds.insert(operationId)
+            print("✅ Added operation \(operationId) to memberOperationIds")
+            
             // Save targets to database
             print("💾 Saving \(targets.count) targets and \(staging.count) staging points to database...")
             
