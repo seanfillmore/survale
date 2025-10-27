@@ -464,10 +464,14 @@ struct ActiveOperationDetailView: View {
     
     private func loadOperationMembers() async {
         do {
+            print("🔍 Loading operation members for operation: \(operation.id)")
             let members = try await SupabaseRPCService.shared.getOperationMembers(operationId: operation.id)
             await MainActor.run {
                 self.operationMembers = members
-                print("👥 Loaded \(members.count) operation members")
+                print("👥 Loaded \(members.count) operation members for transfer:")
+                for member in members {
+                    print("   - \(member.callsign ?? "no callsign") (\(member.email)) - ID: \(member.id)")
+                }
             }
         } catch {
             print("❌ Failed to load operation members: \(error)")
