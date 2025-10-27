@@ -432,11 +432,13 @@ extension Operation: Codable {
         case incidentNumber = "incident_number"
         case state = "status"  // Database uses 'status' not 'state'
         case createdAt = "created_at"
+        case updatedAt = "updated_at"
         case startsAt = "started_at"  // Database uses 'started_at' not 'starts_at'
         case endsAt = "ended_at"      // Database uses 'ended_at' not 'ends_at'
         case createdByUserId = "case_agent_id"  // Database uses 'case_agent_id' not 'created_by_user_id'
         case teamId = "team_id"
         case agencyId = "agency_id"
+        case isDraft = "is_draft"
     }
     
     init(from decoder: Decoder) throws {
@@ -447,11 +449,13 @@ extension Operation: Codable {
         incidentNumber = try container.decodeIfPresent(String.self, forKey: .incidentNumber)
         state = try container.decode(OperationState.self, forKey: .state)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
         startsAt = try container.decodeIfPresent(Date.self, forKey: .startsAt)
         endsAt = try container.decodeIfPresent(Date.self, forKey: .endsAt)
         createdByUserId = try container.decode(UUID.self, forKey: .createdByUserId)
         teamId = try container.decode(UUID.self, forKey: .teamId)
         agencyId = try container.decode(UUID.self, forKey: .agencyId)
+        isDraft = try container.decodeIfPresent(Bool.self, forKey: .isDraft) ?? false
         
         // Initialize related data as empty - will be loaded separately
         targets = []
@@ -466,11 +470,13 @@ extension Operation: Codable {
         try container.encodeIfPresent(incidentNumber, forKey: .incidentNumber)
         try container.encode(state, forKey: .state)
         try container.encode(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
         try container.encodeIfPresent(startsAt, forKey: .startsAt)
         try container.encodeIfPresent(endsAt, forKey: .endsAt)
         try container.encode(createdByUserId, forKey: .createdByUserId)
         try container.encode(teamId, forKey: .teamId)
         try container.encode(agencyId, forKey: .agencyId)
+        try container.encode(isDraft, forKey: .isDraft)
         
         // Don't encode targets and staging - they're stored in separate tables
     }
