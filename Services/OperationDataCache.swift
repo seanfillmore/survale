@@ -7,6 +7,7 @@
 
 import Foundation
 import MapKit
+import Combine
 
 @MainActor
 final class OperationDataCache: ObservableObject {
@@ -132,7 +133,8 @@ final class OperationDataCache: ObservableObject {
         defer { isLoadingTargets = false }
         
         do {
-            return try await SupabaseRPCService.shared.getOperationTargets(operationId: operationId)
+            let result = try await SupabaseRPCService.shared.getOperationTargets(operationId: operationId)
+            return result.targets
         } catch {
             print("❌ OperationDataCache: Failed to fetch targets: \(error)")
             return []
@@ -141,7 +143,8 @@ final class OperationDataCache: ObservableObject {
     
     private func fetchStaging(for operationId: UUID) async -> [StagingPoint] {
         do {
-            return try await SupabaseRPCService.shared.getOperationStaging(operationId: operationId)
+            let result = try await SupabaseRPCService.shared.getOperationTargets(operationId: operationId)
+            return result.staging
         } catch {
             print("❌ OperationDataCache: Failed to fetch staging: \(error)")
             return []
