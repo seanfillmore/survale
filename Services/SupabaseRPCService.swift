@@ -1408,6 +1408,7 @@ final class SupabaseRPCService: @unchecked Sendable {
             guard let lat = stage.lat, let lng = stage.lng else { return nil }
             return [
                 "label": AnyCodable(stage.label),
+                "address": AnyCodable(stage.address),
                 "latitude": AnyCodable(lat),
                 "longitude": AnyCodable(lng)
             ]
@@ -1531,6 +1532,7 @@ final class SupabaseRPCService: @unchecked Sendable {
         struct StagingResponse: Decodable, Sendable {
             let id: String?
             let label: String
+            let address: String?
             let latitude: Double
             let longitude: Double
         }
@@ -1602,6 +1604,7 @@ final class SupabaseRPCService: @unchecked Sendable {
             return StagingPoint(
                 id: stagingId,
                 label: stagingResp.label,
+                address: stagingResp.address ?? "",
                 lat: stagingResp.latitude,
                 lng: stagingResp.longitude
             )
