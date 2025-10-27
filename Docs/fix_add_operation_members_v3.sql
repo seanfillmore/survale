@@ -71,7 +71,7 @@ BEGIN
     
     -- Post system message if members were added (fully qualified)
     IF v_added_count > 0 THEN
-        INSERT INTO public.op_messages (operation_id, sender_user_id, body_text, media_type, sent_at)
+        INSERT INTO public.op_messages (operation_id, sender_user_id, body_text, media_type)
         VALUES (
             p_operation_id,
             auth.uid(),
@@ -79,9 +79,9 @@ BEGIN
                 v_added_count::TEXT, 
                 CASE WHEN v_added_count > 1 THEN 's' ELSE '' END
             ),
-            'system',
-            NOW()
+            'system'
         );
+        -- Note: created_at will be set automatically by DEFAULT NOW()
     END IF;
     
     RETURN json_build_object('added_count', v_added_count);
