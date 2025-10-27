@@ -28,17 +28,11 @@ DECLARE
     v_current_case_agent_id UUID;
 BEGIN
     -- Get current case agent
-    -- Try: case_agent_user_id (most likely based on other tables)
-    SELECT case_agent_user_id INTO v_current_case_agent_id
+    -- CORRECT COLUMN: case_agent_id (confirmed from schema)
+    SELECT case_agent_id INTO v_current_case_agent_id
     FROM public.operations
     WHERE id = operation_id
     AND status = 'active';
-    
-    -- If that doesn't work, try: created_by
-    -- SELECT created_by INTO v_current_case_agent_id
-    -- FROM public.operations
-    -- WHERE id = operation_id
-    -- AND status = 'active';
     
     IF v_current_case_agent_id IS NULL THEN
         RAISE EXCEPTION 'Operation not found or not active';
@@ -61,7 +55,7 @@ BEGIN
     
     -- Update operation to new case agent
     UPDATE public.operations
-    SET case_agent_user_id = new_case_agent_id  -- Changed from created_by_user_id
+    SET case_agent_id = new_case_agent_id  -- CORRECT COLUMN
     WHERE id = operation_id;
     
     -- Send notification message to all members

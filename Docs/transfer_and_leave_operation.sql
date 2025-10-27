@@ -15,7 +15,7 @@ DECLARE
     v_current_case_agent_id UUID;
 BEGIN
     -- Get current case agent
-    SELECT created_by_user_id INTO v_current_case_agent_id
+    SELECT case_agent_id INTO v_current_case_agent_id
     FROM public.operations
     WHERE id = operation_id
     AND status = 'active';
@@ -41,7 +41,7 @@ BEGIN
     
     -- Update operation to new case agent
     UPDATE public.operations
-    SET created_by_user_id = new_case_agent_id
+    SET case_agent_id = new_case_agent_id
     WHERE id = operation_id;
     
     -- Send notification message to all members
