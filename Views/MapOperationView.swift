@@ -30,6 +30,7 @@ struct MapOperationView: View {
         let id = UUID()
         let coordinate: CLLocationCoordinate2D
         let operationId: UUID
+        let teamMembers: [User]  // Capture team members when sheet is presented
     }
     
     enum MapStyleType {
@@ -276,7 +277,7 @@ struct MapOperationView: View {
             AssignLocationSheet(
                 coordinate: data.coordinate,
                 operationId: data.operationId,
-                teamMembers: teamMembers
+                teamMembers: data.teamMembers  // Use captured team members from data
             )
         }
         .task {
@@ -318,7 +319,10 @@ struct MapOperationView: View {
                 // Enable map rendering after data is loaded
                 isMapReady = true
                 
-                // Defer network operations to not block animation
+                // CRITICAL: Load team members fresh (needed for assignments)
+                await loadTeamMembers()
+                
+                // Defer other network operations to not block animation
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms delay
                 
                 if let operationId = appState.activeOperationID {
@@ -408,10 +412,15 @@ struct MapOperationView: View {
         let cachedMembers = dataCache.getTeamMembers(for: operationID)
         
         if !cachedTargets.isEmpty || !cachedStaging.isEmpty {
-            print("✅ Loading from cache - \(cachedTargets.count) targets, \(cachedStaging.count) staging")
+            print("✅ Loading from cache - \(cachedTargets.count) targets, \(cachedStaging.count) staging, \(cachedMembers.count) members")
             targets = cachedTargets
             stagingPoints = cachedStaging
             teamMembers = cachedMembers
+            
+            // Always refresh team members in background (they change frequently)
+            Task {
+                await loadTeamMembers()
+            }
         } else {
             print("🔄 Cache miss - loading fresh data")
             await loadTargets()
@@ -699,26 +708,37 @@ struct MapOperationView: View {
             return
         }
         
-        // Create assignment data to trigger sheet
+        // Create assignment data to trigger sheet (capture current team members)
         assignmentData = AssignmentData(
             coordinate: coordinate,
-            operationId: operationId
+            operationId: operationId,
+            teamMembers: teamMembers
         )
         
-        print("   Created assignment data with coord: \(coordinate.latitude), opId: \(operationId)")
+        print("   Created assignment data with coord: \(coordinate.latitude), opId: \(operationId), members: \(teamMembers.count)")
     }
     
     private func loadTeamMembers() async {
-        guard let operationId = appState.activeOperationID else { return }
+        guard let operationId = appState.activeOperationID else {
+            print("⚠️ Cannot load team members: no active operation")
+            return
+        }
+        
+        print("🔄 MapOperationView: Fetching team members for operation \(operationId)")
         
         do {
             let members = try await SupabaseRPCService.shared.getOperationMembers(operationId: operationId)
+            print("✅ MapOperationView: Received \(members.count) team members from database")
+            for (index, member) in members.enumerated() {
+                print("   [\(index + 1)] \(member.callsign ?? "No callsign") - \(member.email)")
+            }
+            
             await MainActor.run {
                 self.teamMembers = members
-                print("👥 Loaded \(members.count) team members for assignment")
+                print("✅ MapOperationView: Updated local teamMembers array to \(members.count) members")
             }
         } catch {
-            print("❌ Failed to load team members: \(error)")
+            print("❌ MapOperationView: Failed to load team members: \(error)")
         }
     }
     

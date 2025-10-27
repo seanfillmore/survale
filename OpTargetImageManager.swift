@@ -19,7 +19,16 @@ final class OpTargetImageManager: ObservableObject {
 
     private let fm = FileManager.default
     private let cache = NSCache<NSString, UIImage>()
-    private init() {}
+    
+    private init() {
+        // Configure cache limits to prevent memory issues
+        cache.countLimit = 20  // Max 20 images in memory
+        cache.totalCostLimit = 50 * 1024 * 1024  // 50MB maximum cache size
+        
+        print("✅ OpTargetImageManager: Cache configured with limits")
+        print("   Count limit: 20 images")
+        print("   Size limit: 50MB")
+    }
 
     // MARK: - Paths
 
@@ -43,15 +52,56 @@ final class OpTargetImageManager: ObservableObject {
 
     // MARK: - Loading
 
-    func loadImage(atRelativePath relPath: String) -> UIImage? {
-        let key = relPath as NSString
-        if let cached = cache.object(forKey: key) { return cached }
+    /// Load an image with automatic downsampling to prevent memory issues
+    /// - Parameters:
+    ///   - relPath: Relative path to the image
+    ///   - maxSize: Maximum size in pixels (default 1920x1920)
+    /// - Returns: Downsampled UIImage or nil if loading fails
+    func loadImage(atRelativePath relPath: String, maxSize: CGSize = CGSize(width: 1920, height: 1920)) -> UIImage? {
+        // Create unique cache key based on path and size
+        let key = "\(relPath)-\(Int(maxSize.width))" as NSString
+        
+        // Check cache first
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+        
         do {
             let absURL = try absoluteURL(forRelativePath: relPath)
-            guard let img = UIImage(contentsOfFile: absURL.path) else { return nil }
-            cache.setObject(img, forKey: key)
-            return img
-        } catch { return nil }
+            
+            // Downsample image to max size (much more memory efficient than loading full size)
+            guard let downsampledImage = downsampleImage(at: absURL, to: maxSize) else {
+                return nil
+            }
+            
+            // Calculate cost for cache (approximate memory usage)
+            let cost = Int(downsampledImage.size.width * downsampledImage.size.height * 4) // 4 bytes per pixel (RGBA)
+            cache.setObject(downsampledImage, forKey: key, cost: cost)
+            
+            return downsampledImage
+        } catch {
+            print("❌ Failed to load image at \(relPath): \(error)")
+            return nil
+        }
+    }
+    
+    /// Efficiently downsample an image without loading full resolution into memory
+    /// Uses ImageIO for memory-efficient downsampling
+    private func downsampleImage(at url: URL, to size: CGSize) -> UIImage? {
+        let options: [CFString: Any] = [
+            kCGImageSourceShouldCache: false,  // Don't cache during downsampling
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(size.width, size.height)
+        ]
+        
+        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, options as CFDictionary) else {
+            // Fallback to traditional loading if downsampling fails
+            return UIImage(contentsOfFile: url.path)
+        }
+        
+        return UIImage(cgImage: cgImage)
     }
 
     func absoluteURL(forRelativePath relPath: String) throws -> URL {

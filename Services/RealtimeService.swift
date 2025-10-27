@@ -28,10 +28,8 @@ final class RealtimeService: ObservableObject {
     private var messageReceivedHandler: ((ChatMessage) -> Void)?
     
     private init() {
-        self.client = SupabaseClient(
-            supabaseURL: Secrets.supabaseURL,
-            supabaseKey: Secrets.anonKey
-        )
+        // Use shared client instance to reduce overhead
+        self.client = SupabaseClientManager.shared.client
     }
     
     // MARK: - Helpers

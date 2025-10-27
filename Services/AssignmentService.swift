@@ -15,10 +15,8 @@ final class AssignmentService: ObservableObject {
     private var currentOperationId: UUID?
 
     private init() {
-        self.client = SupabaseClient(
-            supabaseURL: Secrets.supabaseURL,
-            supabaseKey: Secrets.anonKey
-        )
+        // Use shared client instance to reduce overhead
+        self.client = SupabaseClientManager.shared.client
     }
 
     // MARK: - Public API

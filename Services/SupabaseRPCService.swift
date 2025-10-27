@@ -14,6 +14,11 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     private let client: SupabaseClient
     
+    private init() {
+        // Use shared client instance to reduce overhead
+        self.client = SupabaseClientManager.shared.supabase
+    }
+    
     // MARK: - Assignment Response Models
     
     struct AssignmentResponse: Decodable, Sendable {
@@ -67,14 +72,6 @@ final class SupabaseRPCService: @unchecked Sendable {
         static func fromArray(_ dictArray: [[String: Any]]) -> [EncodableImageItem] {
             return dictArray.compactMap { from($0) }
         }
-    }
-    
-    private init() {
-        // Create client directly to avoid MainActor isolation issues
-        self.client = SupabaseClient(
-            supabaseURL: Secrets.supabaseURL,
-            supabaseKey: Secrets.anonKey
-        )
     }
     
     // MARK: - Operation Lifecycle
@@ -888,6 +885,8 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     /// Get all members of an operation (for assignment purposes)
     nonisolated func getOperationMembers(operationId: UUID) async throws -> [User] {
+        print("🔍 getOperationMembers: Querying operation_members for operation \(operationId)")
+        
         // First, get all member user IDs for this operation
         struct MemberRecord: Decodable, Sendable {
             let user_id: String
@@ -901,17 +900,24 @@ final class SupabaseRPCService: @unchecked Sendable {
             .execute()
             .value
         
+        print("📊 Retrieved \(members.count) total member records from operation_members")
+        for (index, member) in members.enumerated() {
+            print("   [\(index + 1)] user_id: \(member.user_id), left_at: \(member.left_at ?? "nil")")
+        }
+        
         // Filter to active members only
         let activeUserIds = members
             .filter { $0.left_at == nil }
             .compactMap { UUID(uuidString: $0.user_id) }
+        
+        print("📋 Filtered to \(activeUserIds.count) active member IDs (left_at = nil)")
         
         guard !activeUserIds.isEmpty else {
             print("⚠️ No active members found for operation \(operationId)")
             return []
         }
         
-        print("📋 Found \(activeUserIds.count) active member IDs, fetching user details...")
+        print("🔄 Fetching user details for \(activeUserIds.count) members...")
         
         // Now fetch user details for these IDs
         struct UserRecord: Decodable, Sendable {
@@ -1173,8 +1179,8 @@ final class SupabaseRPCService: @unchecked Sendable {
     /// Add multiple members to an operation
     nonisolated func addOperationMembers(operationId: UUID, memberIds: [UUID]) async throws -> Int {
         struct Params: Encodable, Sendable {
-            let operation_id: String
-            let member_user_ids: [String]
+            let p_operation_id: String
+            let p_member_user_ids: [String]
         }
         
         struct Response: Decodable, Sendable {
@@ -1182,8 +1188,8 @@ final class SupabaseRPCService: @unchecked Sendable {
         }
         
         let params = Params(
-            operation_id: operationId.uuidString,
-            member_user_ids: memberIds.map { $0.uuidString }
+            p_operation_id: operationId.uuidString,
+            p_member_user_ids: memberIds.map { $0.uuidString }
         )
         
         let response: Response = try await client
