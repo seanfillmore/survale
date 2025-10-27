@@ -49,9 +49,9 @@ Current 5-step process:
 Please specify which areas you'd like to focus on:
 
 #### **A. Operation Details Page**
-- [ ] Better layout/visual design?
+- [x] Better layout/visual design?
 - [ ] Add summary statistics (member count, target count)?
-- [ ] Show member list directly on details?
+- [x] Show member list directly on details?
 - [ ] Quick actions toolbar?
 - [ ] Better target card design?
 - [ ] Timeline/activity feed?
@@ -62,8 +62,8 @@ Please specify which areas you'd like to focus on:
 - [ ] Reduce number of steps?
 - [ ] Allow skipping optional steps?
 - [ ] Better progress indicator?
-- [ ] Save as draft functionality?
-- [ ] Template system?
+- [x] Save as draft functionality?
+- [x] Template system?
 - [ ] Better validation messages?
 - [ ] Inline editing vs wizard?
 - [ ] Quick create (minimal info)?
