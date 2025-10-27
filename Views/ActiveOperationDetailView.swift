@@ -35,6 +35,7 @@ struct ActiveOperationDetailView: View {
     @State private var operationMembers: [User] = []
     @State private var showingCloneOperation = false
     @State private var selectedMember: User?
+    @State private var showingSaveAsTemplate = false
     
     var body: some View {
         ScrollView {
@@ -370,29 +371,55 @@ struct ActiveOperationDetailView: View {
                     }
                 }
                 
-                // Clone Operation button (for ended operations)
-                if operation.state == .ended && isCaseAgent {
+                // Clone Operation and Save as Template buttons
+                if isCaseAgent {
                     VStack(spacing: 12) {
                         Divider()
                             .padding(.vertical)
                         
+                        // Clone Operation (for ended operations only)
+                        if operation.state == .ended {
+                            Button {
+                                showingCloneOperation = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "doc.on.doc")
+                                    Text("Clone Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundStyle(.blue)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                            
+                            Text("Create a new operation with the same targets and locations")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        
+                        // Save as Template (for all operations)
                         Button {
-                            showingCloneOperation = true
+                            showingSaveAsTemplate = true
                         } label: {
                             HStack {
-                                Image(systemName: "doc.on.doc")
-                                Text("Clone Operation")
+                                Image(systemName: "square.and.arrow.down")
+                                Text("Save as Template")
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundStyle(.blue)
+                            .background(Color.purple.opacity(0.1))
+                            .foregroundStyle(.purple)
                             .cornerRadius(12)
                         }
                         .padding(.horizontal)
                         
-                        Text("Create a new operation with the same targets and locations")
+                        Text("Save this configuration as a reusable template")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -430,6 +457,9 @@ struct ActiveOperationDetailView: View {
                 clonedTargets: targets,
                 clonedStaging: staging
             )
+        }
+        .sheet(isPresented: $showingSaveAsTemplate) {
+            SaveAsTemplateView(operation: operation, targets: targets, staging: staging)
         }
         .sheet(item: $selectedMember) { member in
             MemberDetailView(member: member, isCaseAgent: member.id == operation.createdByUserId)

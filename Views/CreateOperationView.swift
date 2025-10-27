@@ -25,6 +25,7 @@ struct CreateOperationView: View {
     @State private var targets: [OpTarget] = []
     @State private var staging: [StagingPoint] = []
     @State private var selectedMemberIds: Set<UUID> = []
+    @State private var showingTemplatePicker = false
     
     // Default initializer for creating new operations
     init(clonedOperation: Operation? = nil, clonedTargets: [OpTarget] = [], clonedStaging: [StagingPoint] = []) {
@@ -62,6 +63,11 @@ struct CreateOperationView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
+            .sheet(isPresented: $showingTemplatePicker) {
+                TemplatePickerView { template in
+                    applyTemplate(template)
+                }
+            }
             .onAppear {
                 // Pre-fill data if cloning an operation
                 if let clonedOp = clonedOperation {
@@ -119,6 +125,27 @@ struct CreateOperationView: View {
                             .textFieldStyle(.roundedBorder)
                             .font(.body)
                     }
+                    
+                    Divider()
+                        .padding(.vertical, 8)
+                    
+                    // From Template button
+                    Button {
+                        showingTemplatePicker = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.on.doc")
+                            Text("Start from Template")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(10)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 24)
             }
@@ -221,6 +248,14 @@ struct CreateOperationView: View {
             .padding(.bottom, 8)
         }
         .background(Color(.systemBackground))
+    }
+    
+    private func applyTemplate(_ template: OperationTemplate) {
+        print("📋 Applying template: \(template.name)")
+        name = template.name
+        targets = template.targets
+        staging = template.staging
+        showingTemplatePicker = false
     }
     
     private func createOperation(isDraft: Bool) {
