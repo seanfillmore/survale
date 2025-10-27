@@ -32,12 +32,12 @@ BEGIN
         o.incident_number,
         o.created_at,
         o.updated_at,
-        o.created_by_user_id AS case_agent_id,
+        o.case_agent_id,
         o.team_id,
         o.agency_id
     FROM public.operations o
     WHERE o.is_draft = true
-      AND o.created_by_user_id = v_user_id
+      AND o.case_agent_id = v_user_id
     ORDER BY o.updated_at DESC NULLS LAST, o.created_at DESC;
 END;
 $$;
