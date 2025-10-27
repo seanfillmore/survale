@@ -30,6 +30,7 @@ struct MapOperationView: View {
         let id = UUID()
         let coordinate: CLLocationCoordinate2D
         let operationId: UUID
+        let teamMembers: [User]  // Capture team members when sheet is presented
     }
     
     enum MapStyleType {
@@ -276,7 +277,7 @@ struct MapOperationView: View {
             AssignLocationSheet(
                 coordinate: data.coordinate,
                 operationId: data.operationId,
-                teamMembers: teamMembers
+                teamMembers: data.teamMembers  // Use captured team members from data
             )
         }
         .task {
@@ -699,13 +700,14 @@ struct MapOperationView: View {
             return
         }
         
-        // Create assignment data to trigger sheet
+        // Create assignment data to trigger sheet (capture current team members)
         assignmentData = AssignmentData(
             coordinate: coordinate,
-            operationId: operationId
+            operationId: operationId,
+            teamMembers: teamMembers
         )
         
-        print("   Created assignment data with coord: \(coordinate.latitude), opId: \(operationId)")
+        print("   Created assignment data with coord: \(coordinate.latitude), opId: \(operationId), members: \(teamMembers.count)")
     }
     
     private func loadTeamMembers() async {
