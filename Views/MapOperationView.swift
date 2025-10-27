@@ -409,10 +409,15 @@ struct MapOperationView: View {
         let cachedMembers = dataCache.getTeamMembers(for: operationID)
         
         if !cachedTargets.isEmpty || !cachedStaging.isEmpty {
-            print("✅ Loading from cache - \(cachedTargets.count) targets, \(cachedStaging.count) staging")
+            print("✅ Loading from cache - \(cachedTargets.count) targets, \(cachedStaging.count) staging, \(cachedMembers.count) members")
             targets = cachedTargets
             stagingPoints = cachedStaging
             teamMembers = cachedMembers
+            
+            // Always refresh team members in background (they change frequently)
+            Task {
+                await loadTeamMembers()
+            }
         } else {
             print("🔄 Cache miss - loading fresh data")
             await loadTargets()
