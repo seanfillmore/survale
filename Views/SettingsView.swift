@@ -15,6 +15,14 @@ struct SettingsView: View {
     @State private var vehicleType: VehicleType = .sedan
     @State private var vehicleColor: VehicleColor = .black
     
+    // Original values (to track changes)
+    @State private var originalFirstName = ""
+    @State private var originalLastName = ""
+    @State private var originalCallsign = ""
+    @State private var originalPhoneNumber = ""
+    @State private var originalVehicleType: VehicleType = .sedan
+    @State private var originalVehicleColor: VehicleColor = .black
+    
     // UI state
     @State private var isLoading = false
     @State private var isSaving = false
@@ -222,10 +230,21 @@ struct SettingsView: View {
     }
     
     private var canSave: Bool {
-        !firstName.isEmpty &&
-        !lastName.isEmpty &&
-        !callsign.isEmpty &&
-        isValidPhoneNumber(phoneNumber)
+        // Check if fields are valid
+        let fieldsValid = !firstName.isEmpty &&
+                         !lastName.isEmpty &&
+                         !callsign.isEmpty &&
+                         isValidPhoneNumber(phoneNumber)
+        
+        // Check if anything has changed
+        let hasChanges = firstName != originalFirstName ||
+                        lastName != originalLastName ||
+                        callsign != originalCallsign ||
+                        phoneNumber != originalPhoneNumber ||
+                        vehicleType != originalVehicleType ||
+                        vehicleColor != originalVehicleColor
+        
+        return fieldsValid && hasChanges
     }
     
     private func isValidPhoneNumber(_ phone: String) -> Bool {
@@ -289,6 +308,14 @@ struct SettingsView: View {
                 vehicleColor = color
             }
             
+            // Store original values for change tracking
+            originalFirstName = firstName
+            originalLastName = lastName
+            originalCallsign = callsign
+            originalPhoneNumber = phoneNumber
+            originalVehicleType = vehicleType
+            originalVehicleColor = vehicleColor
+            
         } catch {
             self.error = "Failed to load profile: \(error.localizedDescription)"
         }
@@ -331,6 +358,14 @@ struct SettingsView: View {
                 .update(update)
                 .eq("id", value: userId.uuidString)
                 .execute()
+            
+            // Update original values after successful save
+            originalFirstName = firstName
+            originalLastName = lastName
+            originalCallsign = callsign
+            originalPhoneNumber = phoneNumber
+            originalVehicleType = vehicleType
+            originalVehicleColor = vehicleColor
             
             successMessage = "✓ Profile updated successfully!"
             
