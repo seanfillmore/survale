@@ -152,11 +152,13 @@ struct Operation: Identifiable, Equatable {
     var incidentNumber: String?
     var state: OperationState
     var createdAt: Date
+    var updatedAt: Date?
     var startsAt: Date?  // When operation goes active
     var endsAt: Date?    // When operation ends
     var createdByUserId: UUID
     var teamId: UUID
     var agencyId: UUID
+    var isDraft: Bool
     
     // Related data (not stored in operations table)
     var targets: [OpTarget]
@@ -168,11 +170,13 @@ struct Operation: Identifiable, Equatable {
         incidentNumber: String? = nil,
         state: OperationState = .active,  // Operations are active by default when created
         createdAt: Date = Date(),
+        updatedAt: Date? = nil,
         startsAt: Date? = nil,
         endsAt: Date? = nil,
         createdByUserId: UUID,
         teamId: UUID,
         agencyId: UUID,
+        isDraft: Bool = false,
         targets: [OpTarget] = [],
         staging: [StagingPoint] = []
     ) {
@@ -181,11 +185,13 @@ struct Operation: Identifiable, Equatable {
         self.incidentNumber = incidentNumber
         self.state = state
         self.createdAt = createdAt
+        self.updatedAt = updatedAt
         self.startsAt = startsAt
         self.endsAt = endsAt
         self.createdByUserId = createdByUserId
         self.teamId = teamId
         self.agencyId = agencyId
+        self.isDraft = isDraft
         self.targets = targets
         self.staging = staging
     }
@@ -204,6 +210,30 @@ struct Operation: Identifiable, Equatable {
             targets: [],
             staging: []
         )
+    }
+}
+
+// MARK: - Draft Metadata
+
+struct DraftMetadata: Identifiable, Codable, Equatable {
+    let id: UUID
+    let operationId: UUID
+    let createdByUserId: UUID
+    var lastEditedAt: Date
+    var completionPercentage: Int
+    
+    init(
+        id: UUID = UUID(),
+        operationId: UUID,
+        createdByUserId: UUID,
+        lastEditedAt: Date = Date(),
+        completionPercentage: Int = 0
+    ) {
+        self.id = id
+        self.operationId = operationId
+        self.createdByUserId = createdByUserId
+        self.lastEditedAt = lastEditedAt
+        self.completionPercentage = completionPercentage
     }
 }
 
