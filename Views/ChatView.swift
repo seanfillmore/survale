@@ -5,7 +5,8 @@ import UIKit
  
 struct ChatView: View {
     @EnvironmentObject var appState: AppState
-    @ObservedObject private var realtimeService = RealtimeService.shared
+    // OPTIMIZATION: Access directly without observation (only method calls, no @Published properties)
+    private let realtimeService = RealtimeService.shared
     @State private var text = ""
     @State private var messages: [ChatMessage] = []
     @State private var isLoading = false

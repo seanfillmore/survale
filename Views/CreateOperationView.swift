@@ -778,7 +778,9 @@ struct StagingEditor: View {
                     label: "Street Address",
                     address: $address,
                     city: $city,
-                    zipCode: $zipCode
+                    zipCode: $zipCode,
+                    latitude: $latitude,
+                    longitude: $longitude
                 )
                 
                 TextField("City", text: $city)

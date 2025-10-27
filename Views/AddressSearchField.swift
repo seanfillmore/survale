@@ -108,6 +108,10 @@ class LocationSearchCompleter: NSObject, ObservableObject, MKLocalSearchComplete
     @Published var results: [MKLocalSearchCompletion] = []
     
     private let completer: MKLocalSearchCompleter
+    private var searchTask: Task<Void, Never>?
+    
+    // DEBOUNCING: Wait 300ms before searching (prevents search on every keystroke)
+    private let debounceDelay: TimeInterval = 0.3  // 300 milliseconds
     
     override init() {
         completer = MKLocalSearchCompleter()
@@ -116,8 +120,24 @@ class LocationSearchCompleter: NSObject, ObservableObject, MKLocalSearchComplete
         completer.resultTypes = .address
     }
     
+    /// Search with debouncing - waits 300ms after last keystroke
     func search(query: String) {
-        completer.queryFragment = query
+        // Cancel previous search task
+        searchTask?.cancel()
+        
+        // Create new debounced search task
+        searchTask = Task {
+            // Wait for debounce delay
+            try? await Task.sleep(nanoseconds: UInt64(debounceDelay * 1_000_000_000))
+            
+            // Check if task was cancelled
+            guard !Task.isCancelled else { return }
+            
+            // Perform search on main actor
+            await MainActor.run {
+                completer.queryFragment = query
+            }
+        }
     }
     
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {

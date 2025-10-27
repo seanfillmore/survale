@@ -492,11 +492,8 @@ struct ActiveOperationDetailView: View {
         do {
             try await SupabaseRPCService.shared.leaveOperation(operationId: operation.id, userId: userId)
             
-            // Clear active operation from app state
-            await MainActor.run {
-                appState.activeOperationID = nil
-                appState.activeOperation = nil
-            }
+            // Clean up all services and state
+            await appState.cleanupOperation()
             
             // Reload operations list
             await OperationStore.shared.loadOperations(for: userId)
@@ -511,11 +508,8 @@ struct ActiveOperationDetailView: View {
         do {
             try await SupabaseRPCService.shared.endOperation(operationId: operation.id)
             
-            // Clear active operation from app state
-            await MainActor.run {
-                appState.activeOperationID = nil
-                appState.activeOperation = nil
-            }
+            // Clean up all services and state
+            await appState.cleanupOperation()
             
             // Reload operations list
             if let userId = appState.currentUserID {

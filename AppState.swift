@@ -67,6 +67,31 @@ final class AppState: ObservableObject {
     var isInActiveOperation: Bool {
         return activeOperationID != nil && activeOperation?.state == .active
     }
+    
+    // MARK: - Operation Cleanup
+    
+    /// Clean up all services when leaving/ending an operation
+    /// Call this from leaveOperation(), endOperation(), transferOperation(), and signOut()
+    @MainActor
+    func cleanupOperation() async {
+        print("🧹 Cleaning up operation state...")
+        
+        // Stop all background services
+        await RealtimeService.shared.unsubscribeAll()
+        await AssignmentService.shared.unsubscribeFromAssignments()
+        LocationService.shared.stopPublishing()
+        
+        // Clear cached data
+        OperationDataCache.shared.clearAll()
+        RouteService.shared.clearAllRoutes()
+        AssignmentService.shared.assignedLocations = []
+        
+        // Clear operation state
+        activeOperationID = nil
+        activeOperation = nil
+        
+        print("✅ Operation cleanup complete")
+    }
 }
 
 

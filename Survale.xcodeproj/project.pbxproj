@@ -17,6 +17,8 @@
 		45107E882EAEF10D00E337C9 /* TransferOperationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */; };
 		45107E9C2EAF229700E337C9 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E9B2EAF229700E337C9 /* SplashView.swift */; };
 		45107EA12EAF2A9700E337C9 /* OperationDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */; };
+		45107EA32EAF9B6400E337C9 /* SupabaseClientManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107EA22EAF9B6400E337C9 /* SupabaseClientManager.swift */; };
+		45107EA52EAF9BAE00E337C9 /* AddressSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107EA42EAF9BAE00E337C9 /* AddressSearchField.swift */; };
 		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
 		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
 		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
@@ -53,8 +55,6 @@
 		45B42B612EA3E98100DF32CD /* Operation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B602EA3E98100DF32CD /* Operation.swift */; };
 		45B42B652EA3FF6C00DF32CD /* SupabaseRPCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B642EA3FF6C00DF32CD /* SupabaseRPCService.swift */; };
 		45B42B672EA403EA00DF32CD /* RealtimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B662EA403E800DF32CD /* RealtimeService.swift */; };
-		45B42B692EA48AE000DF32CD /* AddressSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B682EA48AE000DF32CD /* AddressSearchField.swift */; };
-		45B42B6D2EA5939800DF32CD /* OperationDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B6C2EA5939800DF32CD /* OperationDetailView.swift */; };
 		45B42B6F2EA593AB00DF32CD /* EditOperationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B42B6E2EA593AB00DF32CD /* EditOperationView.swift */; };
 /* End PBXBuildFile section */
 
@@ -69,6 +69,8 @@
 		45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferOperationSheet.swift; sourceTree = "<group>"; };
 		45107E9B2EAF229700E337C9 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationDataCache.swift; sourceTree = "<group>"; };
+		45107EA22EAF9B6400E337C9 /* SupabaseClientManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClientManager.swift; sourceTree = "<group>"; };
+		45107EA42EAF9BAE00E337C9 /* AddressSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressSearchField.swift; sourceTree = "<group>"; };
 		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
 		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
 		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
@@ -100,8 +102,6 @@
 		45B42B602EA3E98100DF32CD /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
 		45B42B642EA3FF6C00DF32CD /* SupabaseRPCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseRPCService.swift; sourceTree = "<group>"; };
 		45B42B662EA403E800DF32CD /* RealtimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeService.swift; sourceTree = "<group>"; };
-		45B42B682EA48AE000DF32CD /* AddressSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressSearchField.swift; sourceTree = "<group>"; };
-		45B42B6C2EA5939800DF32CD /* OperationDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationDetailView.swift; sourceTree = "<group>"; };
 		45B42B6E2EA593AB00DF32CD /* EditOperationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditOperationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -146,7 +146,6 @@
 		45B42AFC2EA2DE3400DF32CD = {
 			isa = PBXGroup;
 			children = (
-				45B42B682EA48AE000DF32CD /* AddressSearchField.swift */,
 				45B42B5E2EA3DF3E00DF32CD /* OpTargetKind.swift */,
 				45B42B5A2EA3DB0800DF32CD /* OpTargetEditorView.swift */,
 				45B42B582EA3C04300DF32CD /* OpTargetGalleryView.swift */,
@@ -175,6 +174,7 @@
 		45B42B232EA2E16000DF32CD /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				45107EA42EAF9BAE00E337C9 /* AddressSearchField.swift */,
 				45107E9B2EAF229700E337C9 /* SplashView.swift */,
 				45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */,
 				45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */,
@@ -186,7 +186,6 @@
 				4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */,
 				4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */,
 				45B42B6E2EA593AB00DF32CD /* EditOperationView.swift */,
-				45B42B6C2EA5939800DF32CD /* OperationDetailView.swift */,
 				45B42B472EA3224600DF32CD /* CreateOperationView.swift */,
 				45B42B3E2EA3040A00DF32CD /* ResetPasswordView.swift */,
 				45B42B3C2EA303E800DF32CD /* SignUpView.swift */,
@@ -212,6 +211,7 @@
 		45B42B402EA30CA100DF32CD /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				45107EA22EAF9B6400E337C9 /* SupabaseClientManager.swift */,
 				45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */,
 				45107E7D2EAED55C00E337C9 /* RouteService.swift */,
 				45107E752EAD63B100E337C9 /* AssignmentService.swift */,
@@ -324,6 +324,7 @@
 				45B42B1B2EA2E13D00DF32CD /* LoginView.swift in Sources */,
 				45B42B1C2EA2E13D00DF32CD /* OperationsView.swift in Sources */,
 				45B42B1D2EA2E13D00DF32CD /* ReplayView.swift in Sources */,
+				45107EA32EAF9B6400E337C9 /* SupabaseClientManager.swift in Sources */,
 				45B42B592EA3C04900DF32CD /* OpTargetGalleryView.swift in Sources */,
 				45B42B3F2EA3041100DF32CD /* ResetPasswordView.swift in Sources */,
 				45B42B1E2EA2E13D00DF32CD /* RootView.swift in Sources */,
@@ -343,16 +344,15 @@
 				45B42B6F2EA593AB00DF32CD /* EditOperationView.swift in Sources */,
 				45107E782EAD64A000E337C9 /* AssignLocationSheet.swift in Sources */,
 				45B42B462EA3221500DF32CD /* OperationStore.swift in Sources */,
-				45B42B692EA48AE000DF32CD /* AddressSearchField.swift in Sources */,
 				45B42B572EA3C01F00DF32CD /* OpTargetImageManager.swift in Sources */,
 				4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */,
-				45B42B6D2EA5939800DF32CD /* OperationDetailView.swift in Sources */,
 				45B42B222EA2E13D00DF32CD /* SettingsView.swift in Sources */,
 				45107E762EAD63B100E337C9 /* AssignmentService.swift in Sources */,
 				4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */,
 				45B42B482EA3224D00DF32CD /* CreateOperationView.swift in Sources */,
 				45107E7A2EADA59D00E337C9 /* AssignmentBanner.swift in Sources */,
 				4532AE452EA69C1600649F04 /* CameraView.swift in Sources */,
+				45107EA52EAF9BAE00E337C9 /* AddressSearchField.swift in Sources */,
 				45107E882EAEF10D00E337C9 /* TransferOperationSheet.swift in Sources */,
 				45B42B422EA30CB700DF32CD /* LocationServices.swift in Sources */,
 				45107E7C2EADA5E400E337C9 /* AssignmentDetailView.swift in Sources */,
