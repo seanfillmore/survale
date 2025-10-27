@@ -42,7 +42,9 @@ DROP FUNCTION IF EXISTS public.rpc_get_templates CASCADE;
 DROP FUNCTION IF EXISTS public.rpc_get_templates(text) CASCADE;
 DROP FUNCTION IF EXISTS public.rpc_get_templates(text, text) CASCADE;
 
-RAISE NOTICE '✅ Dropped all versions of rpc_get_templates';
+DO $$ BEGIN
+    RAISE NOTICE '✅ Dropped all versions of rpc_get_templates';
+END $$;
 
 -- Step 4: Create the correct function
 CREATE FUNCTION public.rpc_get_templates(
@@ -118,12 +120,16 @@ BEGIN
 END;
 $$;
 
-RAISE NOTICE '✅ Function rpc_get_templates created successfully';
+DO $$ BEGIN
+    RAISE NOTICE '✅ Function rpc_get_templates created successfully';
+END $$;
 
 -- Step 5: Grant permissions
 GRANT EXECUTE ON FUNCTION public.rpc_get_templates(text) TO authenticated;
 
-RAISE NOTICE '✅ Permissions granted';
+DO $$ BEGIN
+    RAISE NOTICE '✅ Permissions granted';
+END $$;
 
 -- Step 6: Test the function
 SELECT 'Setup complete! Function is ready to use.' as status;
