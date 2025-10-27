@@ -285,34 +285,40 @@ struct ActiveOperationDetailView: View {
                 }
                 
                 // Clone Operation button (for ended operations)
-                if operation.state == .ended && isCaseAgent {
-                    VStack(spacing: 12) {
-                        Divider()
-                            .padding(.vertical)
-                        
-                        Button {
-                            showingCloneOperation = true
-                        } label: {
-                            HStack {
-                                Image(systemName: "doc.on.doc")
-                                Text("Clone Operation")
-                                    .fontWeight(.semibold)
+                Group {
+                    let _ = print("🔍 Clone button check: state=\(operation.state), isCaseAgent=\(isCaseAgent), currentUserId=\(appState.currentUserID?.uuidString ?? "nil"), createdBy=\(operation.createdByUserId.uuidString)")
+                    
+                    if operation.state == .ended && isCaseAgent {
+                        VStack(spacing: 12) {
+                            Divider()
+                                .padding(.vertical)
+                            
+                            Button {
+                                showingCloneOperation = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "doc.on.doc")
+                                    Text("Clone Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundStyle(.blue)
+                                .cornerRadius(12)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundStyle(.blue)
-                            .cornerRadius(12)
-                        }
-                        .padding(.horizontal)
-                        
-                        Text("Create a new operation with the same targets and locations")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
                             .padding(.horizontal)
+                            
+                            Text("Create a new operation with the same targets and locations")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .padding(.bottom)
+                    } else {
+                        let _ = print("❌ Clone button hidden: state is \(operation.state.rawValue), need 'ended'. isCaseAgent: \(isCaseAgent)")
                     }
-                    .padding(.bottom)
                 }
             }
             .padding(.bottom, 20)
