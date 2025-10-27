@@ -1505,6 +1505,124 @@ final class SupabaseRPCService: @unchecked Sendable {
         print("✅ Successfully parsed \(templates.count) templates")
         return templates
     }
+    
+    /// Get full template details including targets and staging points
+    nonisolated func getTemplateDetails(templateId: UUID) async throws -> OperationTemplate {
+        struct Params: Encodable, Sendable {
+            let p_template_id: String
+        }
+        
+        struct TargetResponse: Decodable, Sendable {
+            let id: String?
+            let kind: String
+            let person_first_name: String?
+            let person_last_name: String?
+            let phone: String?
+            let vehicle_make: String?
+            let vehicle_model: String?
+            let vehicle_color: String?
+            let license_plate: String?
+            let location_name: String?
+            let location_address: String?
+            let location_lat: Double?
+            let location_lng: Double?
+        }
+        
+        struct StagingResponse: Decodable, Sendable {
+            let id: String?
+            let label: String
+            let latitude: Double
+            let longitude: Double
+        }
+        
+        struct Response: Decodable, Sendable {
+            let id: String
+            let name: String
+            let description: String?
+            let is_public: Bool
+            let created_at: String
+            let updated_at: String?
+            let targets: [TargetResponse]
+            let staging: [StagingResponse]
+        }
+        
+        let params = Params(p_template_id: templateId.uuidString)
+        
+        let response: Response = try await client
+            .rpc("rpc_get_template_details", params: params)
+            .execute()
+            .value
+        
+        print("🔄 Loaded template details: \(response.name)")
+        print("   Targets: \(response.targets.count)")
+        print("   Staging: \(response.staging.count)")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        guard let id = UUID(uuidString: response.id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid template ID")
+        }
+        
+        guard let createdAt = dateFormatter.date(from: response.created_at) else {
+            throw SupabaseRPCError.invalidResponse("Invalid created_at date")
+        }
+        
+        // Parse targets
+        let targets = response.targets.compactMap { targetResp -> OpTarget? in
+            guard let kind = OpTargetKind(rawValue: targetResp.kind) else {
+                print("⚠️ Unknown target kind: \(targetResp.kind)")
+                return nil
+            }
+            
+            let targetId = targetResp.id.flatMap { UUID(uuidString: $0) } ?? UUID()
+            
+            return OpTarget(
+                id: targetId,
+                kind: kind,
+                personFirstName: targetResp.person_first_name,
+                personLastName: targetResp.person_last_name,
+                phone: targetResp.phone,
+                vehicleMake: targetResp.vehicle_make,
+                vehicleModel: targetResp.vehicle_model,
+                vehicleColor: targetResp.vehicle_color,
+                licensePlate: targetResp.license_plate,
+                locationName: targetResp.location_name,
+                locationAddress: targetResp.location_address,
+                locationLat: targetResp.location_lat,
+                locationLng: targetResp.location_lng,
+                mediaItems: []
+            )
+        }
+        
+        // Parse staging points
+        let staging = response.staging.compactMap { stagingResp -> StagingPoint? in
+            let stagingId = stagingResp.id.flatMap { UUID(uuidString: $0) } ?? UUID()
+            
+            return StagingPoint(
+                id: stagingId,
+                label: stagingResp.label,
+                lat: stagingResp.latitude,
+                lng: stagingResp.longitude
+            )
+        }
+        
+        print("✅ Parsed \(targets.count) targets and \(staging.count) staging points")
+        
+        return OperationTemplate(
+            id: id,
+            name: response.name,
+            description: response.description,
+            createdByUserId: UUID(), // Not needed for template application
+            teamId: UUID(), // Not needed
+            agencyId: UUID(), // Not needed
+            createdAt: createdAt,
+            updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) },
+            isPublic: response.is_public,
+            targets: targets,
+            staging: staging
+        )
+    }
 }
 
 // MARK: - Supporting Models

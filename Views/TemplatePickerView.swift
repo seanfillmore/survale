@@ -41,8 +41,8 @@ struct TemplatePickerView: View {
                     EmptyTemplatesView(scope: selectedScope)
                 } else {
                     List(templates) { template in
-                        TemplateRow(template: template) {
-                            onSelect(template)
+                        TemplateRow(template: template) { fullTemplate in
+                            onSelect(fullTemplate)
                             dismiss()
                         }
                     }
@@ -88,10 +88,16 @@ struct TemplatePickerView: View {
 
 struct TemplateRow: View {
     let template: OperationTemplate
-    let onSelect: () -> Void
+    let onSelect: (OperationTemplate) -> Void
+    
+    @State private var isLoadingDetails = false
     
     var body: some View {
-        Button(action: onSelect) {
+        Button(action: {
+            Task {
+                await loadAndSelect()
+            }
+        }) {
             HStack(spacing: 12) {
                 // Icon
                 ZStack {
@@ -139,13 +145,37 @@ struct TemplateRow: View {
                 
                 Spacer()
                 
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                if isLoadingDetails {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
             }
             .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
+        .disabled(isLoadingDetails)
+        .opacity(isLoadingDetails ? 0.6 : 1.0)
+    }
+    
+    private func loadAndSelect() async {
+        isLoadingDetails = true
+        defer { isLoadingDetails = false }
+        
+        do {
+            print("🔄 Fetching full details for template: \(template.name)")
+            let fullTemplate = try await SupabaseRPCService.shared.getTemplateDetails(templateId: template.id)
+            print("✅ Loaded template with \(fullTemplate.targets.count) targets and \(fullTemplate.staging.count) staging")
+            
+            await MainActor.run {
+                onSelect(fullTemplate)
+            }
+        } catch {
+            print("❌ Failed to load template details: \(error)")
+        }
     }
 }
 
