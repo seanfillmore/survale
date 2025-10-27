@@ -496,4 +496,49 @@ extension Operation: Codable {
     }
 }
 
+// MARK: - Operation Template
+
+/// Represents a reusable operation template
+struct OperationTemplate: Identifiable, Codable, Equatable {
+    let id: UUID
+    var name: String
+    var description: String?
+    var createdByUserId: UUID
+    var teamId: UUID
+    var agencyId: UUID
+    var createdAt: Date
+    var updatedAt: Date?
+    var isPublic: Bool  // If true, visible to entire agency; if false, only to creator
+    
+    // Template data
+    var targets: [OpTarget]
+    var staging: [StagingPoint]
+    
+    init(
+        id: UUID = UUID(),
+        name: String,
+        description: String? = nil,
+        createdByUserId: UUID,
+        teamId: UUID,
+        agencyId: UUID,
+        createdAt: Date = Date(),
+        updatedAt: Date? = nil,
+        isPublic: Bool = false,
+        targets: [OpTarget] = [],
+        staging: [StagingPoint] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.createdByUserId = createdByUserId
+        self.teamId = teamId
+        self.agencyId = agencyId
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.isPublic = isPublic
+        self.targets = targets
+        self.staging = staging
+    }
+}
+
 
