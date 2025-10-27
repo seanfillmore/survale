@@ -25,7 +25,21 @@ final class AppState: ObservableObject {
     
     // MARK: - Operation Context
     
-    @Published var activeOperationID: UUID?
+    @Published var activeOperationID: UUID? {
+        didSet {
+            // Prefetch operation data when active operation changes
+            if let operationId = activeOperationID {
+                Task { @MainActor in
+                    OperationDataCache.shared.prefetchOperationData(operationId: operationId)
+                }
+            } else {
+                // Clear cache when no active operation
+                Task { @MainActor in
+                    OperationDataCache.shared.clearAll()
+                }
+            }
+        }
+    }
     @Published var activeOperation: Operation?
     
     // MARK: - Permissions
