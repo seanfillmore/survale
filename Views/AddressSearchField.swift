@@ -14,6 +14,8 @@ struct AddressSearchField: View {
     @Binding var address: String
     @Binding var city: String
     @Binding var zipCode: String
+    @Binding var latitude: Double?
+    @Binding var longitude: Double?
     
     @State private var searchResults: [MKLocalSearchCompletion] = []
     @State private var showResults = false
@@ -90,6 +92,10 @@ struct AddressSearchField: View {
             address = street.isEmpty ? completion.title : street
             city = placemark.locality ?? ""
             zipCode = placemark.postalCode ?? ""
+            
+            // Set coordinates
+            latitude = placemark.coordinate.latitude
+            longitude = placemark.coordinate.longitude
             
             showResults = false
         }
