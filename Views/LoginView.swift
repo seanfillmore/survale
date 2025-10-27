@@ -23,14 +23,18 @@ struct LoginView: View {
                 .focused($focusedField, equals: .email)
                 .submitLabel(.next)
                 .onSubmit { focusedField = .password }
-                .padding().background(Color(.secondarySystemBackground)).cornerRadius(12)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
 
             SecureField("Password", text: $password)
                 .textContentType(.password)
                 .focused($focusedField, equals: .password)
                 .submitLabel(.go)
                 .onSubmit { signIn() }
-                .padding().background(Color(.secondarySystemBackground)).cornerRadius(12)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(12)
 
             if let error { Text(error).foregroundColor(.red) }
 
@@ -49,16 +53,15 @@ struct LoginView: View {
             .font(.footnote)
             .padding(.top, 8)
 
-            .fullScreenCover(isPresented: $showSignUp) {
-                SignUpView()
-            }
-            .sheet(isPresented: $showReset) {
-                ResetPasswordView()
-                    .presentationDetents([.height(240), .medium])
-            }
-
         }
         .padding()
+        .fullScreenCover(isPresented: $showSignUp) {
+            SignUpView()
+        }
+        .sheet(isPresented: $showReset) {
+            ResetPasswordView()
+                .presentationDetents([.height(240), .medium])
+        }
     }
 
     private func signIn() {
