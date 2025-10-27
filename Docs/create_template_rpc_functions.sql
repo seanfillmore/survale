@@ -5,9 +5,10 @@
 -- Drop existing functions to ensure clean recreation
 -- ============================================
 
-DROP FUNCTION IF EXISTS public.rpc_save_operation_as_template(text, text, uuid, boolean, jsonb, jsonb);
-DROP FUNCTION IF EXISTS public.rpc_get_templates(text);
-DROP FUNCTION IF EXISTS public.rpc_get_template_details(uuid);
+-- Drop with CASCADE to remove all dependencies
+DROP FUNCTION IF EXISTS public.rpc_save_operation_as_template CASCADE;
+DROP FUNCTION IF EXISTS public.rpc_get_templates CASCADE;
+DROP FUNCTION IF EXISTS public.rpc_get_template_details CASCADE;
 
 -- ============================================
 -- Function: Save an operation as a template
