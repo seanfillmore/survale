@@ -15,11 +15,20 @@ struct SettingsView: View {
     @State private var vehicleType: VehicleType = .sedan
     @State private var vehicleColor: VehicleColor = .black
     
+    // Original values (to track changes)
+    @State private var originalFirstName = ""
+    @State private var originalLastName = ""
+    @State private var originalCallsign = ""
+    @State private var originalPhoneNumber = ""
+    @State private var originalVehicleType: VehicleType = .sedan
+    @State private var originalVehicleColor: VehicleColor = .black
+    
     // UI state
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var error: String?
     @State private var successMessage: String?
+    @State private var isPhoneValid = false
 
     var body: some View {
         NavigationView {
@@ -46,10 +55,14 @@ struct SettingsView: View {
                         SettingsSectionHeader(title: "Personal Information")
                         
                         SettingsTextField(icon: "person.fill", placeholder: "First Name", text: $firstName)
+                            .autocorrectionDisabled()
                         
                         SettingsTextField(icon: "person.fill", placeholder: "Last Name", text: $lastName)
+                            .autocorrectionDisabled()
                         
                         SettingsTextField(icon: "signature", placeholder: "Call Sign", text: $callsign)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.characters)
                         
                         HStack {
                             Image(systemName: "phone.fill")
@@ -65,7 +78,14 @@ struct SettingsView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(12)
                         .onChange(of: phoneNumber) { _, newValue in
-                            phoneNumber = formatPhoneNumber(newValue)
+                            let formatted = formatPhoneNumber(newValue)
+                            if phoneNumber != formatted {
+                                phoneNumber = formatted
+                            }
+                            // Validate async to avoid blocking UI
+                            Task { @MainActor in
+                                isPhoneValid = isValidPhoneNumber(formatted)
+                            }
                         }
                         
                         // Email (read-only)
@@ -213,6 +233,7 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, 40)
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .task {
@@ -222,10 +243,21 @@ struct SettingsView: View {
     }
     
     private var canSave: Bool {
-        !firstName.isEmpty &&
-        !lastName.isEmpty &&
-        !callsign.isEmpty &&
-        isValidPhoneNumber(phoneNumber)
+        // Check if fields are valid (use cached phone validation)
+        let fieldsValid = !firstName.isEmpty &&
+                         !lastName.isEmpty &&
+                         !callsign.isEmpty &&
+                         isPhoneValid
+        
+        // Check if anything has changed
+        let hasChanges = firstName != originalFirstName ||
+                        lastName != originalLastName ||
+                        callsign != originalCallsign ||
+                        phoneNumber != originalPhoneNumber ||
+                        vehicleType != originalVehicleType ||
+                        vehicleColor != originalVehicleColor
+        
+        return fieldsValid && hasChanges
     }
     
     private func isValidPhoneNumber(_ phone: String) -> Bool {
@@ -289,6 +321,17 @@ struct SettingsView: View {
                 vehicleColor = color
             }
             
+            // Store original values for change tracking
+            originalFirstName = firstName
+            originalLastName = lastName
+            originalCallsign = callsign
+            originalPhoneNumber = phoneNumber
+            originalVehicleType = vehicleType
+            originalVehicleColor = vehicleColor
+            
+            // Initialize phone validation
+            isPhoneValid = isValidPhoneNumber(phoneNumber)
+            
         } catch {
             self.error = "Failed to load profile: \(error.localizedDescription)"
         }
@@ -331,6 +374,14 @@ struct SettingsView: View {
                 .update(update)
                 .eq("id", value: userId.uuidString)
                 .execute()
+            
+            // Update original values after successful save
+            originalFirstName = firstName
+            originalLastName = lastName
+            originalCallsign = callsign
+            originalPhoneNumber = phoneNumber
+            originalVehicleType = vehicleType
+            originalVehicleColor = vehicleColor
             
             successMessage = "✓ Profile updated successfully!"
             
