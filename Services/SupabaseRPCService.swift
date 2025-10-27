@@ -1179,8 +1179,8 @@ final class SupabaseRPCService: @unchecked Sendable {
     /// Add multiple members to an operation
     nonisolated func addOperationMembers(operationId: UUID, memberIds: [UUID]) async throws -> Int {
         struct Params: Encodable, Sendable {
-            let operation_id: String
-            let member_user_ids: [String]
+            let p_operation_id: String
+            let p_member_user_ids: [String]
         }
         
         struct Response: Decodable, Sendable {
@@ -1188,8 +1188,8 @@ final class SupabaseRPCService: @unchecked Sendable {
         }
         
         let params = Params(
-            operation_id: operationId.uuidString,
-            member_user_ids: memberIds.map { $0.uuidString }
+            p_operation_id: operationId.uuidString,
+            p_member_user_ids: memberIds.map { $0.uuidString }
         )
         
         let response: Response = try await client
