@@ -1322,13 +1322,13 @@ final class SupabaseRPCService: @unchecked Sendable {
                 incidentNumber: response.incident_number,
                 state: .draft,
                 createdAt: createdAt,
+                updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) },
                 startsAt: nil,
                 endsAt: nil,
                 createdByUserId: caseAgentId,
                 teamId: teamId,
                 agencyId: agencyId,
-                isDraft: true,
-                updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) }
+                isDraft: true
             )
         }
     }
