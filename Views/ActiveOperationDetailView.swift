@@ -228,7 +228,13 @@ struct ActiveOperationDetailView: View {
                         // Transfer Operation button (case agent only)
                         if isCaseAgent {
                             Button {
-                                showingTransferSheet = true
+                                Task {
+                                    // Reload members to ensure we have the latest data
+                                    await loadOperationMembers()
+                                    await MainActor.run {
+                                        showingTransferSheet = true
+                                    }
+                                }
                             } label: {
                                 HStack {
                                     Image(systemName: "arrow.triangle.swap")
