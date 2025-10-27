@@ -14,6 +14,11 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     private let client: SupabaseClient
     
+    private init() {
+        // Use shared client instance to reduce overhead
+        self.client = SupabaseClientManager.shared.supabase
+    }
+    
     // MARK: - Assignment Response Models
     
     struct AssignmentResponse: Decodable, Sendable {
@@ -67,14 +72,6 @@ final class SupabaseRPCService: @unchecked Sendable {
         static func fromArray(_ dictArray: [[String: Any]]) -> [EncodableImageItem] {
             return dictArray.compactMap { from($0) }
         }
-    }
-    
-    private init() {
-        // Create client directly to avoid MainActor isolation issues
-        self.client = SupabaseClient(
-            supabaseURL: Secrets.supabaseURL,
-            supabaseKey: Secrets.anonKey
-        )
     }
     
     // MARK: - Operation Lifecycle

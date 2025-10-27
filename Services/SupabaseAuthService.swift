@@ -11,10 +11,8 @@ final class SupabaseAuthService {
     private weak var appState: AppState?
 
     private init() {
-        client = SupabaseClient(
-            supabaseURL: Secrets.supabaseURL,
-            supabaseKey: Secrets.anonKey
-        )
+        // Use shared client instance to reduce overhead
+        client = SupabaseClientManager.shared.client
     }
     
     // Set AppState reference for user ID updates

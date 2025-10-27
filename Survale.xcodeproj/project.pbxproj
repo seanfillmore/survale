@@ -16,6 +16,7 @@
 		45107E802EAED59F00E337C9 /* InAppNavigationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */; };
 		45107E882EAEF10D00E337C9 /* TransferOperationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */; };
 		45107E9C2EAF229700E337C9 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E9B2EAF229700E337C9 /* SplashView.swift */; };
+		45107EA12EAF2A9700E337C9 /* OperationDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */; };
 		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
 		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
 		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
@@ -67,6 +68,7 @@
 		45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppNavigationView.swift; sourceTree = "<group>"; };
 		45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferOperationSheet.swift; sourceTree = "<group>"; };
 		45107E9B2EAF229700E337C9 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationDataCache.swift; sourceTree = "<group>"; };
 		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
 		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
 		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
@@ -210,6 +212,7 @@
 		45B42B402EA30CA100DF32CD /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */,
 				45107E7D2EAED55C00E337C9 /* RouteService.swift */,
 				45107E752EAD63B100E337C9 /* AssignmentService.swift */,
 				4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */,
@@ -324,6 +327,7 @@
 				45B42B592EA3C04900DF32CD /* OpTargetGalleryView.swift in Sources */,
 				45B42B3F2EA3041100DF32CD /* ResetPasswordView.swift in Sources */,
 				45B42B1E2EA2E13D00DF32CD /* RootView.swift in Sources */,
+				45107EA12EAF2A9700E337C9 /* OperationDataCache.swift in Sources */,
 				45B42B1F2EA2E13D00DF32CD /* MainTabsView.swift in Sources */,
 				45107E742EAD636700E337C9 /* AssignmentModels.swift in Sources */,
 				45B42B202EA2E13D00DF32CD /* ChatView.swift in Sources */,

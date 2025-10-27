@@ -16,11 +16,8 @@ final class SupabaseStorageService {
     private let bucketName = "target-images"
     
     private init() {
-        // Initialize Supabase client (same config as auth service)
-        self.client = SupabaseClient(
-            supabaseURL: Secrets.supabaseURL,
-            supabaseKey: Secrets.anonKey
-        )
+        // Use shared client instance to reduce overhead
+        self.client = SupabaseClientManager.shared.supabase
     }
     
     // MARK: - Upload Image
