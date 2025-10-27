@@ -75,13 +75,14 @@ BEGIN
         VALUES (
             p_operation_id,
             auth.uid(),
-            format('%s team member%s added to operation', 
+            format('✅ %s team member%s added to operation', 
                 v_added_count::TEXT, 
                 CASE WHEN v_added_count > 1 THEN 's' ELSE '' END
             ),
-            'system'
+            'text'
         );
         -- Note: created_at will be set automatically by DEFAULT NOW()
+        -- Using 'text' media_type since enum doesn't include 'system'
     END IF;
     
     RETURN json_build_object('added_count', v_added_count);
