@@ -84,7 +84,7 @@ final class AppState: ObservableObject {
         // Clear cached data
         OperationDataCache.shared.clearAll()
         RouteService.shared.clearAllRoutes()
-        AssignmentService.shared.clearAssignments()
+        AssignmentService.shared.assignedLocations = []
         
         // Clear operation state
         activeOperationID = nil
