@@ -64,9 +64,9 @@ final class OperationStore: ObservableObject {
                 createdByUserId: userId,
                 teamId: teamId,
                 agencyId: agencyId,
+                isDraft: isDraft,
                 targets: targets,
-                staging: staging,
-                isDraft: isDraft
+                staging: staging
             )
             
             // Add to appropriate list based on draft status
