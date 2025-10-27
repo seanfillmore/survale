@@ -73,11 +73,13 @@ struct TemplatePickerView: View {
         defer { isLoading = false }
         
         do {
-            // TODO: Load templates from SupabaseRPCService
             print("📋 Loading \(selectedScope.rawValue)...")
-            templates = []
+            let scope = selectedScope == .mine ? "mine" : "agency"
+            templates = try await SupabaseRPCService.shared.getTemplates(scope: scope)
+            print("✅ Loaded \(templates.count) templates")
         } catch {
             print("❌ Failed to load templates: \(error)")
+            templates = []
         }
     }
 }

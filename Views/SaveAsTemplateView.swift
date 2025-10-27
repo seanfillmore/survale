@@ -103,17 +103,26 @@ struct SaveAsTemplateView: View {
                       let teamId = appState.currentUser?.teamId,
                       let agencyId = appState.currentUser?.agencyId else {
                     print("❌ Missing user context")
+                    await MainActor.run {
+                        isSaving = false
+                    }
                     return
                 }
                 
-                // TODO: Call SupabaseRPCService to save template
                 print("📋 Saving template: \(templateName)")
                 print("   Public: \(isPublic)")
                 print("   Targets: \(targets.count)")
                 print("   Staging: \(staging.count)")
                 
-                // Simulate API call
-                try await Task.sleep(for: .seconds(1))
+                let templateId = try await SupabaseRPCService.shared.saveOperationAsTemplate(
+                    name: templateName,
+                    description: templateDescription.isEmpty ? nil : templateDescription,
+                    isPublic: isPublic,
+                    targets: targets,
+                    staging: staging
+                )
+                
+                print("✅ Template saved with ID: \(templateId)")
                 
                 await MainActor.run {
                     isSaving = false

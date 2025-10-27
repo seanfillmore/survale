@@ -1332,6 +1332,202 @@ final class SupabaseRPCService: @unchecked Sendable {
             )
         }
     }
+    
+    // MARK: - Template Functions
+    
+    /// Save an operation as a template
+    nonisolated func saveOperationAsTemplate(
+        name: String,
+        description: String?,
+        isPublic: Bool,
+        targets: [OpTarget],
+        staging: [StagingPoint]
+    ) async throws -> UUID {
+        struct Params: Encodable, Sendable {
+            let p_name: String
+            let p_description: String?
+            let p_is_public: Bool
+            let p_targets: [[String: AnyCodable]]
+            let p_staging: [[String: AnyCodable]]
+        }
+        
+        struct Response: Decodable, Sendable {
+            let template_id: String
+        }
+        
+        // Convert targets to JSON-compatible format
+        let targetsJson = targets.map { target -> [String: AnyCodable] in
+            var dict: [String: AnyCodable] = [
+                "kind": AnyCodable(target.kind.rawValue)
+            ]
+            
+            switch target.kind {
+            case .person:
+                if let firstName = target.personFirstName {
+                    dict["person_first_name"] = AnyCodable(firstName)
+                }
+                if let lastName = target.personLastName {
+                    dict["person_last_name"] = AnyCodable(lastName)
+                }
+                if let phone = target.phone {
+                    dict["phone"] = AnyCodable(phone)
+                }
+            case .vehicle:
+                if let make = target.vehicleMake {
+                    dict["vehicle_make"] = AnyCodable(make)
+                }
+                if let model = target.vehicleModel {
+                    dict["vehicle_model"] = AnyCodable(model)
+                }
+                if let color = target.vehicleColor {
+                    dict["vehicle_color"] = AnyCodable(color)
+                }
+                if let plate = target.licensePlate {
+                    dict["license_plate"] = AnyCodable(plate)
+                }
+            case .location:
+                if let name = target.locationName {
+                    dict["location_name"] = AnyCodable(name)
+                }
+                if let address = target.locationAddress {
+                    dict["location_address"] = AnyCodable(address)
+                }
+                if let lat = target.locationLat {
+                    dict["location_lat"] = AnyCodable(lat)
+                }
+                if let lng = target.locationLng {
+                    dict["location_lng"] = AnyCodable(lng)
+                }
+            }
+            
+            return dict
+        }
+        
+        // Convert staging to JSON-compatible format
+        let stagingJson = staging.compactMap { stage -> [String: AnyCodable]? in
+            guard let lat = stage.lat, let lng = stage.lng else { return nil }
+            return [
+                "label": AnyCodable(stage.label),
+                "latitude": AnyCodable(lat),
+                "longitude": AnyCodable(lng)
+            ]
+        }
+        
+        let params = Params(
+            p_name: name,
+            p_description: description,
+            p_is_public: isPublic,
+            p_targets: targetsJson,
+            p_staging: stagingJson
+        )
+        
+        let response: Response = try await client
+            .rpc("rpc_save_operation_as_template", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.template_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid template ID format")
+        }
+        
+        return uuid
+    }
+    
+    /// Get templates (personal or agency-wide)
+    nonisolated func getTemplates(scope: String) async throws -> [OperationTemplate] {
+        struct Params: Encodable, Sendable {
+            let p_scope: String
+        }
+        
+        struct Response: Decodable, Sendable {
+            let id: String
+            let name: String
+            let description: String?
+            let created_by_user_id: String
+            let is_public: Bool
+            let created_at: String
+            let updated_at: String?
+            let target_count: Int
+            let staging_count: Int
+        }
+        
+        let params = Params(p_scope: scope)
+        
+        let responses: [Response] = try await client
+            .rpc("rpc_get_templates", params: params)
+            .execute()
+            .value
+        
+        print("🔄 Loaded \(responses.count) templates (scope: \(scope))")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        return responses.compactMap { response in
+            guard let id = UUID(uuidString: response.id),
+                  let createdByUserId = UUID(uuidString: response.created_by_user_id),
+                  let createdAt = dateFormatter.date(from: response.created_at) else {
+                return nil
+            }
+            
+            return OperationTemplate(
+                id: id,
+                name: response.name,
+                description: response.description,
+                createdByUserId: createdByUserId,
+                teamId: UUID(), // Not returned in list view
+                agencyId: UUID(), // Not returned in list view
+                createdAt: createdAt,
+                updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) },
+                isPublic: response.is_public,
+                targets: [], // Load separately when template is selected
+                staging: []  // Load separately when template is selected
+            )
+        }
+    }
+}
+
+// MARK: - Supporting Models
+
+// Helper for encoding mixed types
+struct AnyCodable: Codable {
+    let value: Any
+    
+    init(_ value: Any) {
+        self.value = value
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        
+        if let string = value as? String {
+            try container.encode(string)
+        } else if let int = value as? Int {
+            try container.encode(int)
+        } else if let double = value as? Double {
+            try container.encode(double)
+        } else if let bool = value as? Bool {
+            try container.encode(bool)
+        } else {
+            try container.encodeNil()
+        }
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if let string = try? container.decode(String.self) {
+            value = string
+        } else if let int = try? container.decode(Int.self) {
+            value = int
+        } else if let double = try? container.decode(Double.self) {
+            value = double
+        } else if let bool = try? container.decode(Bool.self) {
+            value = bool
+        } else {
+            value = ""
+        }
+    }
 }
 
 // MARK: - Supporting Models
