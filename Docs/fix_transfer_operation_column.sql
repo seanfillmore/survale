@@ -59,12 +59,12 @@ BEGIN
     WHERE id = operation_id;
     
     -- Send notification message to all members
-    INSERT INTO public.op_messages (operation_id, user_id, text, kind)
+    INSERT INTO public.op_messages (operation_id, sender_user_id, body_text, media_type)
     SELECT 
         operation_id,
         auth.uid(),
         (SELECT COALESCE(callsign, email, id::text) FROM public.users WHERE id = auth.uid()) || ' has transferred the operation to ' || (SELECT COALESCE(callsign, email, id::text) FROM public.users WHERE id = new_case_agent_id),
-        'system'::message_kind;
+        'text';
     
     RAISE NOTICE 'Operation transferred successfully';
 END;
