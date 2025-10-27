@@ -161,6 +161,24 @@ struct CreateOperationView: View {
         VStack(spacing: 12) {
             Divider()
             
+            // Save as Draft button (only on review step)
+            if step == .review {
+                Button {
+                    saveDraft()
+                } label: {
+                    HStack {
+                        Image(systemName: "doc.badge.plus")
+                        Text("Save as Draft")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+                .tint(.orange)
+                .padding(.horizontal)
+            }
+            
             HStack(spacing: 12) {
                 if step != .name {
                     Button {
@@ -179,7 +197,7 @@ struct CreateOperationView: View {
                 
                 Button {
                     if step == .review {
-                        createOperation()
+                        createOperation(isDraft: false)
                     } else {
                         next()
                     }
@@ -205,7 +223,7 @@ struct CreateOperationView: View {
         .background(Color(.systemBackground))
     }
     
-    private func createOperation() {
+    private func createOperation(isDraft: Bool) {
         Task {
             do {
                 guard let userId = appState.currentUserID else {
@@ -241,7 +259,8 @@ struct CreateOperationView: View {
                     teamId: teamId,
                     agencyId: agencyId,
                     targets: targets,
-                    staging: staging
+                    staging: staging,
+                    isDraft: isDraft
                 )
                 
                 // Add selected team members to the operation
@@ -260,14 +279,23 @@ struct CreateOperationView: View {
                 }
                 
                 await MainActor.run {
-                    appState.activeOperationID = op.id
-                    appState.activeOperation = op
-                    dismiss()
+                    if isDraft {
+                        print("📝 Draft saved successfully")
+                        dismiss()
+                    } else {
+                        appState.activeOperationID = op.id
+                        appState.activeOperation = op
+                        dismiss()
+                    }
                 }
             } catch {
                 print("Failed to create operation: \(error)")
             }
         }
+    }
+    
+    private func saveDraft() {
+        createOperation(isDraft: true)
     }
 
     private var disableNext: Bool {

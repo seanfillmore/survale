@@ -78,10 +78,11 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     /// Create a new operation (draft state)
     /// Returns the operation ID
-    nonisolated func createOperation(name: String, incidentNumber: String?) async throws -> UUID {
+    nonisolated func createOperation(name: String, incidentNumber: String?, isDraft: Bool = false) async throws -> UUID {
         struct CreateOperationParams: Encodable, Sendable {
             let name: String
             let incident_number: String?
+            let is_draft: Bool
         }
         
         struct CreateOperationResponse: Decodable, Sendable {
@@ -90,7 +91,8 @@ final class SupabaseRPCService: @unchecked Sendable {
         
         let params = CreateOperationParams(
             name: name,
-            incident_number: incidentNumber
+            incident_number: incidentNumber,
+            is_draft: isDraft
         )
         
         let response: CreateOperationResponse = try await client
@@ -1278,6 +1280,55 @@ final class SupabaseRPCService: @unchecked Sendable {
                 createdByUserId: caseAgentId,
                 teamId: teamId,
                 agencyId: agencyId
+            )
+        }
+    }
+    
+    /// Get all draft operations for the current user
+    nonisolated func getDraftOperations() async throws -> [Operation] {
+        struct Response: Decodable {
+            let id: String
+            let name: String
+            let incident_number: String?
+            let created_at: String
+            let updated_at: String?
+            let case_agent_id: String
+            let team_id: String
+            let agency_id: String
+        }
+        
+        let responses: [Response] = try await client
+            .rpc("rpc_get_draft_operations")
+            .execute()
+            .value
+        
+        print("🔄 Loaded \(responses.count) draft operations")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        return responses.compactMap { response in
+            guard let id = UUID(uuidString: response.id),
+                  let caseAgentId = UUID(uuidString: response.case_agent_id),
+                  let teamId = UUID(uuidString: response.team_id),
+                  let agencyId = UUID(uuidString: response.agency_id),
+                  let createdAt = dateFormatter.date(from: response.created_at) else {
+                return nil
+            }
+            
+            return Operation(
+                id: id,
+                name: response.name,
+                incidentNumber: response.incident_number,
+                state: .draft,
+                createdAt: createdAt,
+                startsAt: nil,
+                endsAt: nil,
+                createdByUserId: caseAgentId,
+                teamId: teamId,
+                agencyId: agencyId,
+                isDraft: true,
+                updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) }
             )
         }
     }

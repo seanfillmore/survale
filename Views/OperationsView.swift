@@ -17,6 +17,11 @@ struct OperationsView: View {
                 } else {
                     // Otherwise show list of operations to join
                     List {
+                        // Draft operations
+                        if !store.draftOperations.isEmpty {
+                            draftsSection
+                        }
+                        
                         // All active operations
                         activeOperationsSection
                         
@@ -209,6 +214,72 @@ struct OperationsView: View {
     }
     
     @ViewBuilder
+    private var draftsSection: some View {
+        Section {
+            ForEach(store.draftOperations) { draft in
+                HStack(spacing: 12) {
+                    Image(systemName: "doc.badge.ellipsis")
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(draft.name)
+                            .font(.headline)
+                        
+                        HStack(spacing: 8) {
+                            Label("Draft", systemImage: "pencil")
+                                .font(.caption2)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.orange)
+                                .cornerRadius(6)
+                            
+                            if let updatedAt = draft.updatedAt {
+                                Text("Updated \(updatedAt.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("Created \(draft.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // TODO: Open draft editor
+                    print("📝 Tap draft: \(draft.name)")
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        Task {
+                            await deleteDraft(draft.id)
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        } header: {
+            HStack {
+                Text("Drafts")
+                Spacer()
+                Text("\(store.draftOperations.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+    
     private var previousOperationsSection: some View {
         Section("Previous Operations") {
             ForEach(store.previousOperations) { op in
@@ -253,6 +324,20 @@ struct OperationsView: View {
             print("✅ Operation ended successfully")
         } catch {
             print("❌ Failed to end operation: \(error)")
+        }
+    }
+    
+    private func deleteDraft(_ draftId: UUID) async {
+        do {
+            // TODO: Add RPC function to delete draft
+            print("🗑️ Deleting draft \(draftId)")
+            
+            // For now, just remove from local list
+            await MainActor.run {
+                store.draftOperations.removeAll { $0.id == draftId }
+            }
+        } catch {
+            print("❌ Failed to delete draft: \(error)")
         }
     }
 }
