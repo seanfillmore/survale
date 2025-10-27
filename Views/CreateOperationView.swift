@@ -11,6 +11,11 @@ import PhotosUI
 struct CreateOperationView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var appState: AppState
+    
+    // Optional cloned operation data
+    let clonedOperation: Operation?
+    let clonedTargets: [OpTarget]
+    let clonedStaging: [StagingPoint]
 
     enum Step: Hashable { case name, targets, staging, teamMembers, review }
     @State private var step: Step = .name
@@ -20,6 +25,13 @@ struct CreateOperationView: View {
     @State private var targets: [OpTarget] = []
     @State private var staging: [StagingPoint] = []
     @State private var selectedMemberIds: Set<UUID> = []
+    
+    // Default initializer for creating new operations
+    init(clonedOperation: Operation? = nil, clonedTargets: [OpTarget] = [], clonedStaging: [StagingPoint] = []) {
+        self.clonedOperation = clonedOperation
+        self.clonedTargets = clonedTargets
+        self.clonedStaging = clonedStaging
+    }
 
     var body: some View {
         NavigationStack {
@@ -36,7 +48,7 @@ struct CreateOperationView: View {
                 // Footer at bottom
                 footer
             }
-            .navigationTitle(step == .name ? "New Operation" : (name.isEmpty ? "Untitled Operation" : name))
+            .navigationTitle(clonedOperation != nil ? "Clone Operation" : (step == .name ? "New Operation" : (name.isEmpty ? "Untitled Operation" : name)))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -50,6 +62,19 @@ struct CreateOperationView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
+            .onAppear {
+                // Pre-fill data if cloning an operation
+                if let clonedOp = clonedOperation {
+                    name = clonedOp.name + " (Copy)"
+                    incidentNumber = clonedOp.incidentNumber ?? ""
+                    targets = clonedTargets
+                    staging = clonedStaging
+                    
+                    print("🔄 Cloning operation: \(clonedOp.name)")
+                    print("   Targets: \(clonedTargets.count)")
+                    print("   Staging: \(clonedStaging.count)")
+                }
+            }
         }
     }
 

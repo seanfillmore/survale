@@ -28,6 +28,7 @@ struct ActiveOperationDetailView: View {
     @State private var showingTransferSheet = false
     @State private var showingLeaveConfirm = false
     @State private var operationMembers: [User] = []
+    @State private var showingCloneOperation = false
     
     var body: some View {
         ScrollView {
@@ -282,6 +283,37 @@ struct ActiveOperationDetailView: View {
                         }
                     }
                 }
+                
+                // Clone Operation button (for ended operations)
+                if operation.state == .ended && isCaseAgent {
+                    VStack(spacing: 12) {
+                        Divider()
+                            .padding(.vertical)
+                        
+                        Button {
+                            showingCloneOperation = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.on.doc")
+                                Text("Clone Operation")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundStyle(.blue)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                        
+                        Text("Create a new operation with the same targets and locations")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .padding(.bottom)
+                }
             }
             .padding(.bottom, 20)
         }
@@ -304,6 +336,13 @@ struct ActiveOperationDetailView: View {
         }
         .sheet(isPresented: $showingTransferSheet) {
             TransferOperationSheet(operation: operation, members: operationMembers)
+        }
+        .sheet(isPresented: $showingCloneOperation) {
+            CreateOperationView(
+                clonedOperation: operation,
+                clonedTargets: targets,
+                clonedStaging: staging
+            )
         }
         .alert("Leave Operation", isPresented: $showingLeaveConfirm) {
             Button("Cancel", role: .cancel) { }
