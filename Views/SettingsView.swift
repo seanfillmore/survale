@@ -221,6 +221,7 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, 40)
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .task {
