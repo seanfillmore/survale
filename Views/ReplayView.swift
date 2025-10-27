@@ -1,40 +1,28 @@
 import SwiftUI
 
 struct ReplayView: View {
-    @State private var progress: Double = 0.0
-    @State private var isPlaying = false
-
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Replay")
-                .font(.title2).bold()
-
-            Slider(value: $progress, in: 0...1)
-
-            HStack(spacing: 24) {
-                Button {
-                    // TODO: jump back
-                } label: {
-                    Image(systemName: "backward.fill")
-                }
-
-                Button {
-                    isPlaying.toggle()
-                } label: {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                }
-
-                Button {
-                    // TODO: jump forward
-                } label: {
-                    Image(systemName: "forward.fill")
-                }
+        VStack {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.secondary)
+                
+                Text("Coming Soon")
+                    .font(.title.bold())
+                    .foregroundStyle(.primary)
+                
+                Text("Operation replay and timeline features will be available in a future update")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-
+            
             Spacer()
         }
-        .padding()
+        .navigationTitle("Replay")
     }
 }
