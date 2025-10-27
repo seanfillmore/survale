@@ -487,9 +487,7 @@ struct TargetsEditor: View {
                         label: "Street Address",
                         address: $address,
                         city: $city,
-                        zipCode: $zipCode,
-                        latitude: $latitude,
-                        longitude: $longitude
+                        zipCode: $zipCode
                     )
                     
                     TextField("City", text: $city)
@@ -778,9 +776,7 @@ struct StagingEditor: View {
                     label: "Street Address",
                     address: $address,
                     city: $city,
-                    zipCode: $zipCode,
-                    latitude: $latitude,
-                    longitude: $longitude
+                    zipCode: $zipCode
                 )
                 
                 TextField("City", text: $city)
