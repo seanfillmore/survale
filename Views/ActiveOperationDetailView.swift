@@ -1296,38 +1296,53 @@ struct MemberRow: View {
     let isCurrentUser: Bool
     
     private var initials: String {
-        let firstName = member.firstName ?? member.email.prefix(1).uppercased()
-        let lastName = member.lastName ?? ""
-        
-        if !lastName.isEmpty {
-            return "\(firstName.prefix(1))\(lastName.prefix(1))".uppercased()
+        // Try callsign first, then email
+        if let callsign = member.callsign, !callsign.isEmpty {
+            return String(callsign.prefix(2)).uppercased()
         } else {
-            return String(firstName.prefix(2)).uppercased()
+            // Use first 2 characters of email
+            let emailPrefix = member.email.prefix(2)
+            return String(emailPrefix).uppercased()
         }
     }
     
     private var displayName: String {
         if let callsign = member.callsign, !callsign.isEmpty {
             return callsign
-        } else if let firstName = member.firstName, let lastName = member.lastName {
-            return "\(firstName) \(lastName)"
         } else {
             return member.email
         }
     }
     
     private var vehicleInfo: String {
-        var parts: [String] = []
+        // vehicleType is a non-optional enum
+        let typeDisplay = member.vehicleType.displayName
         
-        if let type = member.vehicleType, !type.isEmpty, type != "none" {
-            parts.append(type.capitalized)
+        // Convert hex color to readable name (simplified)
+        let colorName = hexToColorName(member.vehicleColor)
+        
+        return "\(typeDisplay) • \(colorName)"
+    }
+    
+    private func hexToColorName(_ hex: String) -> String {
+        // Simple color name mapping for common colors
+        let lowercaseHex = hex.lowercased().replacingOccurrences(of: "#", with: "")
+        
+        switch lowercaseHex {
+        case "000000", "0d0d0d": return "Black"
+        case "ffffff", "f8f8f8": return "White"
+        case "c0c0c0", "d3d3d3": return "Silver"
+        case "808080", "696969": return "Gray"
+        case "ff0000", "dc143c": return "Red"
+        case "0000ff", "0000cd": return "Blue"
+        case "00ff00", "32cd32": return "Green"
+        case "ffff00", "ffd700": return "Yellow"
+        case "ffa500", "ff8c00": return "Orange"
+        case "800080", "8b008b": return "Purple"
+        case "a52a2a", "8b4513": return "Brown"
+        case "ffc0cb", "ffb6c1": return "Pink"
+        default: return "Custom"
         }
-        
-        if let color = member.vehicleColor, !color.isEmpty {
-            parts.append(color.capitalized)
-        }
-        
-        return parts.isEmpty ? "No vehicle info" : parts.joined(separator: " • ")
     }
     
     var body: some View {
@@ -1362,11 +1377,9 @@ struct MemberRow: View {
                 
                 HStack(spacing: 8) {
                     // Vehicle color dot
-                    if let colorHex = member.vehicleColor, !colorHex.isEmpty {
-                        Circle()
-                            .fill(Color(hex: colorHex) ?? .gray)
-                            .frame(width: 10, height: 10)
-                    }
+                    Circle()
+                        .fill(Color(hex: member.vehicleColor) ?? .gray)
+                        .frame(width: 10, height: 10)
                     
                     Text(vehicleInfo)
                         .font(.caption)
