@@ -243,10 +243,8 @@ struct OperationsView: View {
         do {
             try await store.endOperation(activeOpId)
             
-            await MainActor.run {
-                appState.activeOperationID = nil
-                appState.activeOperation = nil
-            }
+            // Clean up all services and state
+            await appState.cleanupOperation()
             
             if let userID = appState.currentUserID {
                 await store.loadOperations(for: userID)

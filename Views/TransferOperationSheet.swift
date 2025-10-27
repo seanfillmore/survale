@@ -119,6 +119,9 @@ struct TransferOperationSheet: View {
                 newCaseAgentId: newCaseAgentId
             )
             
+            // Clean up all services and state (user no longer case agent)
+            await appState.cleanupOperation()
+            
             // Reload operations to reflect the change
             if let userId = appState.currentUserID {
                 await OperationStore.shared.loadOperations(for: userId)
