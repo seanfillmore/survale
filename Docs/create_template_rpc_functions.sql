@@ -176,41 +176,35 @@ BEGIN
         -- Return only user's own templates
         RETURN QUERY
         SELECT
-            t.id::uuid,
-            t.name::text,
-            t.description::text,
-            t.created_by_user_id::uuid,
-            t.is_public::boolean,
-            t.created_at::timestamptz,
-            t.updated_at::timestamptz,
-            COUNT(DISTINCT tgt.id)::bigint as target_count,
-            COUNT(DISTINCT sp.id)::bigint as staging_count
+            t.id,
+            t.name,
+            t.description,
+            t.created_by_user_id,
+            t.is_public,
+            t.created_at,
+            t.updated_at,
+            (SELECT COUNT(*) FROM public.template_targets WHERE template_id = t.id)::bigint as target_count,
+            (SELECT COUNT(*) FROM public.template_staging_points WHERE template_id = t.id)::bigint as staging_count
         FROM public.operation_templates t
-        LEFT JOIN public.template_targets tgt ON tgt.template_id = t.id
-        LEFT JOIN public.template_staging_points sp ON sp.template_id = t.id
         WHERE t.created_by_user_id = v_user_id
-        GROUP BY t.id, t.name, t.description, t.created_by_user_id, t.is_public, t.created_at, t.updated_at
         ORDER BY t.updated_at DESC NULLS LAST, t.created_at DESC;
     ELSE
         -- Return agency-wide public templates (excluding user's own)
         RETURN QUERY
         SELECT
-            t.id::uuid,
-            t.name::text,
-            t.description::text,
-            t.created_by_user_id::uuid,
-            t.is_public::boolean,
-            t.created_at::timestamptz,
-            t.updated_at::timestamptz,
-            COUNT(DISTINCT tgt.id)::bigint as target_count,
-            COUNT(DISTINCT sp.id)::bigint as staging_count
+            t.id,
+            t.name,
+            t.description,
+            t.created_by_user_id,
+            t.is_public,
+            t.created_at,
+            t.updated_at,
+            (SELECT COUNT(*) FROM public.template_targets WHERE template_id = t.id)::bigint as target_count,
+            (SELECT COUNT(*) FROM public.template_staging_points WHERE template_id = t.id)::bigint as staging_count
         FROM public.operation_templates t
-        LEFT JOIN public.template_targets tgt ON tgt.template_id = t.id
-        LEFT JOIN public.template_staging_points sp ON sp.template_id = t.id
         WHERE t.is_public = true
           AND t.agency_id = v_agency_id
           AND t.created_by_user_id != v_user_id
-        GROUP BY t.id, t.name, t.description, t.created_by_user_id, t.is_public, t.created_at, t.updated_at
         ORDER BY t.updated_at DESC NULLS LAST, t.created_at DESC;
     END IF;
 END;
