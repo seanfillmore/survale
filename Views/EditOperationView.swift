@@ -386,6 +386,21 @@ struct EditOperationView: View {
                 }
             }
             
+            // Add newly selected team members to the operation
+            if !selectedMemberIds.isEmpty {
+                print("👥 Adding \(selectedMemberIds.count) member(s) to operation...")
+                do {
+                    let addedCount = try await SupabaseRPCService.shared.addOperationMembers(
+                        operationId: operation.id,
+                        memberIds: Array(selectedMemberIds)
+                    )
+                    print("✅ Successfully added \(addedCount) member(s)")
+                } catch {
+                    print("⚠️ Failed to add members: \(error)")
+                    // Continue anyway - other changes were saved successfully
+                }
+            }
+            
             print("✅ Operation updated successfully")
             
             await MainActor.run {
