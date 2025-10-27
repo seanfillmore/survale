@@ -443,9 +443,11 @@ struct ActiveOperationDetailView: View {
             self.isMember = isUserMember
         }
         
-        // Only load targets if user is a member
-        guard isUserMember else {
-            print("ℹ️ User is not a member of operation \(operation.id) - skipping target load")
+        // Load targets if user is a member OR if they're the case agent (for cloning ended operations)
+        let shouldLoadTargets = isUserMember || isCaseAgent
+        
+        guard shouldLoadTargets else {
+            print("ℹ️ User is not a member or case agent of operation \(operation.id) - skipping target load")
             return
         }
         
@@ -525,9 +527,11 @@ struct ActiveOperationDetailView: View {
             self.isMember = isUserMember
         }
         
-        // Only load targets if user is a member
-        guard isUserMember else {
-            print("ℹ️ User is not a member - skipping refresh")
+        // Load targets if user is a member OR if they're the case agent (for cloning ended operations)
+        let shouldLoadTargets = isUserMember || isCaseAgent
+        
+        guard shouldLoadTargets else {
+            print("ℹ️ User is not a member or case agent - skipping refresh")
             return
         }
         
