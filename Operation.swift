@@ -46,17 +46,28 @@ struct User: Identifiable, Codable, Equatable {
     var email: String
     var teamId: UUID  // primary team
     var agencyId: UUID
+    var firstName: String?
+    var lastName: String?
     var callsign: String?
+    var phoneNumber: String?
     var vehicleType: VehicleType
     var vehicleColor: String  // hex color code
     var createdAt: Date
+    
+    var fullName: String? {
+        guard let first = firstName, let last = lastName else { return nil }
+        return "\(first) \(last)"
+    }
     
     init(
         id: UUID = UUID(),
         email: String,
         teamId: UUID,
         agencyId: UUID,
+        firstName: String? = nil,
+        lastName: String? = nil,
         callsign: String? = nil,
+        phoneNumber: String? = nil,
         vehicleType: VehicleType = .sedan,
         vehicleColor: String = "#0000FF",
         createdAt: Date = Date()
@@ -65,7 +76,10 @@ struct User: Identifiable, Codable, Equatable {
         self.email = email
         self.teamId = teamId
         self.agencyId = agencyId
+        self.firstName = firstName
+        self.lastName = lastName
         self.callsign = callsign
+        self.phoneNumber = phoneNumber
         self.vehicleType = vehicleType
         self.vehicleColor = vehicleColor
         self.createdAt = createdAt
