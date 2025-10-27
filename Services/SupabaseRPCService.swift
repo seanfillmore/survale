@@ -1579,22 +1579,49 @@ final class SupabaseRPCService: @unchecked Sendable {
             
             let targetId = targetResp.id.flatMap { UUID(uuidString: $0) } ?? UUID()
             
-            return OpTarget(
+            // Determine label based on kind
+            let label: String
+            switch kind {
+            case .person:
+                let name = [targetResp.person_first_name, targetResp.person_last_name]
+                    .compactMap { $0 }
+                    .joined(separator: " ")
+                label = name.isEmpty ? "Unknown Person" : name
+            case .vehicle:
+                let desc = [targetResp.vehicle_color, targetResp.vehicle_make, targetResp.vehicle_model]
+                    .compactMap { $0 }
+                    .joined(separator: " ")
+                label = desc.isEmpty ? (targetResp.license_plate ?? "Unknown Vehicle") : desc
+            case .location:
+                label = targetResp.location_name ?? targetResp.location_address ?? "Unknown Location"
+            }
+            
+            // Create target with all fields
+            var target = OpTarget(
                 id: targetId,
                 kind: kind,
-                personFirstName: targetResp.person_first_name,
-                personLastName: targetResp.person_last_name,
-                phone: targetResp.phone,
-                vehicleMake: targetResp.vehicle_make,
-                vehicleModel: targetResp.vehicle_model,
-                vehicleColor: targetResp.vehicle_color,
-                licensePlate: targetResp.license_plate,
-                locationName: targetResp.location_name,
-                locationAddress: targetResp.location_address,
-                locationLat: targetResp.location_lat,
-                locationLng: targetResp.location_lng,
-                mediaItems: []
+                label: label,
+                notes: nil
             )
+            
+            // Set person fields
+            target.personFirstName = targetResp.person_first_name
+            target.personLastName = targetResp.person_last_name
+            target.personPhone = targetResp.phone
+            
+            // Set vehicle fields
+            target.vehicleMake = targetResp.vehicle_make
+            target.vehicleModel = targetResp.vehicle_model
+            target.vehicleColor = targetResp.vehicle_color
+            target.vehiclePlate = targetResp.license_plate
+            
+            // Set location fields
+            target.locationName = targetResp.location_name
+            target.locationAddress = targetResp.location_address
+            target.locationLat = targetResp.location_lat
+            target.locationLng = targetResp.location_lng
+            
+            return target
         }
         
         // Parse staging points
