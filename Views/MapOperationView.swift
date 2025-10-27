@@ -20,6 +20,7 @@ struct MapOperationView: View {
     @State private var showTrails = false
     @State private var locationTrails: [UUID: [LocationPoint]] = [:]
     @State private var currentMapStyleType: MapStyleType = .standard
+    @State private var isMapReady = false // Defer heavy rendering
     
     // Assignment-related state
     @State private var assignmentData: AssignmentData?
@@ -120,18 +121,23 @@ struct MapOperationView: View {
                     }
                     
                     // Target locations (red pins)
-                    ForEach(targets) { target in
-                        if let coordinate = target.coordinate {
-                            Marker(target.label, systemImage: "target", coordinate: coordinate)
-                                .tint(.red)
+                    // Only render targets after map is ready (deferred rendering)
+                    if isMapReady {
+                        ForEach(targets) { target in
+                            if let coordinate = target.coordinate {
+                                Marker(target.label, systemImage: "target", coordinate: coordinate)
+                                    .tint(.red)
+                            }
                         }
                     }
                     
                     // Staging points (green pins)
-                    ForEach(stagingPoints) { staging in
-                        if let coordinate = staging.coordinate {
-                            Marker(staging.label, systemImage: "mappin.circle.fill", coordinate: coordinate)
-                                .tint(.green)
+                    if isMapReady {
+                        ForEach(stagingPoints) { staging in
+                            if let coordinate = staging.coordinate {
+                                Marker(staging.label, systemImage: "mappin.circle.fill", coordinate: coordinate)
+                                    .tint(.green)
+                            }
                         }
                     }
                     
@@ -274,11 +280,20 @@ struct MapOperationView: View {
             )
         }
         .task {
-            // Use cached data if available, otherwise load fresh
-            await loadFromCacheOrFetch()
+            // Load cached data immediately (synchronous, instant)
+            if let operationId = appState.activeOperationID {
+                targets = dataCache.getTargets(for: operationId)
+                stagingPoints = dataCache.getStagingPoints(for: operationId)
+                teamMembers = dataCache.getTeamMembers(for: operationId)
+            }
+            
+            // Defer heavy operations slightly to let view render
+            try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+            
+            // Now do the heavy lifting in background
             await subscribeToRealtimeUpdates()
             
-            // Load assignments on initial view
+            // Load assignments
             if let operationId = appState.activeOperationID {
                 await assignmentService.fetchAssignments(for: operationId)
                 await assignmentService.subscribeToAssignments(operationId: operationId)
@@ -288,11 +303,24 @@ struct MapOperationView: View {
             await calculateRouteForCurrentUser()
         }
         .onAppear {
-            // Use cached data for instant display when returning to map
+            // Allow view to render first, then load data
             Task {
-                await loadFromCacheOrFetch()
+                // Tiny delay to let tab animation complete
+                try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (1 frame at 60fps)
                 
-                // Load assignments if there's an active operation
+                // Load from cache immediately (no await, instant)
+                if let operationId = appState.activeOperationID {
+                    targets = dataCache.getTargets(for: operationId)
+                    stagingPoints = dataCache.getStagingPoints(for: operationId)
+                    teamMembers = dataCache.getTeamMembers(for: operationId)
+                }
+                
+                // Enable map rendering after data is loaded
+                isMapReady = true
+                
+                // Defer network operations to not block animation
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms delay
+                
                 if let operationId = appState.activeOperationID {
                     await assignmentService.fetchAssignments(for: operationId)
                     await assignmentService.subscribeToAssignments(operationId: operationId)
@@ -300,6 +328,9 @@ struct MapOperationView: View {
             }
         }
         .onDisappear {
+            // Reset for next appearance
+            isMapReady = false
+            
             Task {
                 await realtimeService.unsubscribeAll()
                 await assignmentService.unsubscribeFromAssignments()
