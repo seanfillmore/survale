@@ -8,6 +8,10 @@ import SwiftUI
 import Combine
 
 final class AppState: ObservableObject {
+    // MARK: - App Lifecycle
+    
+    @Published var isInitializing = true
+    
     // MARK: - Authentication
     
     @Published var isAuthenticated = false

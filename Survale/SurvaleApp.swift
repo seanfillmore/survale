@@ -13,14 +13,42 @@ struct SurvaleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environmentObject(appState)
-                .task {
-                    SupabaseAuthService.shared.setAppState(appState)
-                    SupabaseAuthService.shared.startAuthListener { isAuthed in
-                        appState.isAuthenticated = isAuthed
-                    }
+            ZStack {
+                // Main app content
+                RootView()
+                    .environmentObject(appState)
+                    .opacity(appState.isInitializing ? 0 : 1)
+                
+                // Splash screen overlay
+                if appState.isInitializing {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
+            }
+            .task {
+                await initializeApp()
+            }
+        }
+    }
+    
+    private func initializeApp() async {
+        // Set up auth service
+        SupabaseAuthService.shared.setAppState(appState)
+        
+        // Start auth listener
+        SupabaseAuthService.shared.startAuthListener { isAuthed in
+            appState.isAuthenticated = isAuthed
+        }
+        
+        // Minimum splash display time (ensure smooth experience)
+        try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+        
+        // Hide splash screen
+        await MainActor.run {
+            withAnimation(.easeOut(duration: 0.5)) {
+                appState.isInitializing = false
+            }
         }
     }
 }
