@@ -27,30 +27,12 @@ struct LoginView: View {
                     
                     // App branding header
                     VStack(spacing: 16) {
-                        // App icon - shield with location pin (matches your app icon design)
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.blue.opacity(0.8), .blue],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 100, height: 100)
-                                .shadow(color: .blue.opacity(0.4), radius: 15, x: 0, y: 8)
-                            
-                            VStack(spacing: -4) {
-                                Image(systemName: "shield.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(.white.opacity(0.9))
-                                
-                                Image(systemName: "location.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(.white)
-                                    .offset(y: -8)
-                            }
-                        }
+                        // App logo
+                        Image("LoginLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 120, height: 120)
+                            .shadow(color: .blue.opacity(0.3), radius: 15, x: 0, y: 8)
                         
                         Text("Survale")
                             .font(.system(size: 40, weight: .bold, design: .rounded))
