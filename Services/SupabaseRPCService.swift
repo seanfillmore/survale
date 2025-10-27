@@ -885,6 +885,8 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     /// Get all members of an operation (for assignment purposes)
     nonisolated func getOperationMembers(operationId: UUID) async throws -> [User] {
+        print("🔍 getOperationMembers: Querying operation_members for operation \(operationId)")
+        
         // First, get all member user IDs for this operation
         struct MemberRecord: Decodable, Sendable {
             let user_id: String
@@ -898,17 +900,24 @@ final class SupabaseRPCService: @unchecked Sendable {
             .execute()
             .value
         
+        print("📊 Retrieved \(members.count) total member records from operation_members")
+        for (index, member) in members.enumerated() {
+            print("   [\(index + 1)] user_id: \(member.user_id), left_at: \(member.left_at ?? "nil")")
+        }
+        
         // Filter to active members only
         let activeUserIds = members
             .filter { $0.left_at == nil }
             .compactMap { UUID(uuidString: $0.user_id) }
+        
+        print("📋 Filtered to \(activeUserIds.count) active member IDs (left_at = nil)")
         
         guard !activeUserIds.isEmpty else {
             print("⚠️ No active members found for operation \(operationId)")
             return []
         }
         
-        print("📋 Found \(activeUserIds.count) active member IDs, fetching user details...")
+        print("🔄 Fetching user details for \(activeUserIds.count) members...")
         
         // Now fetch user details for these IDs
         struct UserRecord: Decodable, Sendable {
