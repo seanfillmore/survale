@@ -10,6 +10,7 @@ struct MapOperationView: View {
     @ObservedObject private var store = OperationStore.shared
     @ObservedObject private var assignmentService = AssignmentService.shared
     @ObservedObject private var routeService = RouteService.shared
+    @ObservedObject private var dataCache = OperationDataCache.shared
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.3349, longitude: -122.0090),
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
@@ -273,8 +274,8 @@ struct MapOperationView: View {
             )
         }
         .task {
-            await loadTargets()
-            await loadTeamMembers()
+            // Use cached data if available, otherwise load fresh
+            await loadFromCacheOrFetch()
             await subscribeToRealtimeUpdates()
             
             // Load assignments on initial view
@@ -287,10 +288,9 @@ struct MapOperationView: View {
             await calculateRouteForCurrentUser()
         }
         .onAppear {
-            // Reload targets, team members, and assignments when returning to map
+            // Use cached data for instant display when returning to map
             Task {
-                await loadTargets()
-                await loadTeamMembers()
+                await loadFromCacheOrFetch()
                 
                 // Load assignments if there's an active operation
                 if let operationId = appState.activeOperationID {
@@ -361,6 +361,30 @@ struct MapOperationView: View {
                 center: coord,
                 span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
             )
+        }
+    }
+    
+    /// Load data from cache if available, otherwise fetch fresh (for smooth tab switching)
+    private func loadFromCacheOrFetch() async {
+        guard let operationID = appState.activeOperationID else {
+            print("⚠️ No active operation ID - cannot load data")
+            return
+        }
+        
+        // Try to load from cache first (instant)
+        let cachedTargets = dataCache.getTargets(for: operationID)
+        let cachedStaging = dataCache.getStagingPoints(for: operationID)
+        let cachedMembers = dataCache.getTeamMembers(for: operationID)
+        
+        if !cachedTargets.isEmpty || !cachedStaging.isEmpty {
+            print("✅ Loading from cache - \(cachedTargets.count) targets, \(cachedStaging.count) staging")
+            targets = cachedTargets
+            stagingPoints = cachedStaging
+            teamMembers = cachedMembers
+        } else {
+            print("🔄 Cache miss - loading fresh data")
+            await loadTargets()
+            await loadTeamMembers()
         }
     }
     
