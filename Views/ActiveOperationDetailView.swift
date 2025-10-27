@@ -24,6 +24,11 @@ struct ActiveOperationDetailView: View {
     @State private var pendingRequests: [JoinRequest] = []
     @State private var showingJoinRequests = false
     @State private var isRefreshing = false
+    @State private var showingEndConfirm = false
+    @State private var showingTransferSheet = false
+    @State private var showingLeaveConfirm = false
+    @State private var operationMembers: [User] = []
+    @State private var showingCloneOperation = false
     
     var body: some View {
         ScrollView {
@@ -213,6 +218,102 @@ struct ActiveOperationDetailView: View {
                         .padding(.vertical, 40)
                     }
                 }
+                
+                // Operation management buttons
+                if isYourActiveOperation && isMember {
+                    VStack(spacing: 12) {
+                        Divider()
+                            .padding(.vertical)
+                        
+                        // Transfer Operation button (case agent only)
+                        if isCaseAgent {
+                            Button {
+                                showingTransferSheet = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "arrow.triangle.swap")
+                                    Text("Transfer Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundStyle(.orange)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // Leave Operation button (team members only, not case agent)
+                        if !isCaseAgent {
+                            Button {
+                                showingLeaveConfirm = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    Text("Leave Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundStyle(.orange)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        // End Operation button (case agent only)
+                        if isCaseAgent {
+                            Button {
+                                showingEndConfirm = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "xmark.circle.fill")
+                                    Text("End Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red.opacity(0.1))
+                                .foregroundStyle(.red)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                }
+                
+                // Clone Operation button (for ended operations)
+                if operation.state == .ended && isCaseAgent {
+                    VStack(spacing: 12) {
+                        Divider()
+                            .padding(.vertical)
+                        
+                        Button {
+                            showingCloneOperation = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.on.doc")
+                                Text("Clone Operation")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundStyle(.blue)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                        
+                        Text("Create a new operation with the same targets and locations")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .padding(.bottom)
+                }
             }
             .padding(.bottom, 20)
         }
@@ -233,8 +334,39 @@ struct ActiveOperationDetailView: View {
         .refreshable {
             await refreshData()
         }
+        .sheet(isPresented: $showingTransferSheet) {
+            TransferOperationSheet(operation: operation, members: operationMembers)
+        }
+        .sheet(isPresented: $showingCloneOperation) {
+            CreateOperationView(
+                clonedOperation: operation,
+                clonedTargets: targets,
+                clonedStaging: staging
+            )
+        }
+        .alert("Leave Operation", isPresented: $showingLeaveConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Leave", role: .destructive) {
+                Task {
+                    await leaveOperation()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to leave this operation? You will need to request to rejoin if you change your mind.")
+        }
+        .alert("End Operation", isPresented: $showingEndConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("End Operation", role: .destructive) {
+                Task {
+                    await endOperation()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to end this operation? All members will be removed and the operation will be moved to Previous Operations.")
+        }
         .task {
             await loadOperationData()
+            await loadOperationMembers()
             if isCaseAgent {
                 await loadJoinRequests()
             }
@@ -311,9 +443,11 @@ struct ActiveOperationDetailView: View {
             self.isMember = isUserMember
         }
         
-        // Only load targets if user is a member
-        guard isUserMember else {
-            print("ℹ️ User is not a member of operation \(operation.id) - skipping target load")
+        // Load targets if user is a member OR if they're the case agent (for cloning ended operations)
+        let shouldLoadTargets = isUserMember || isCaseAgent
+        
+        guard shouldLoadTargets else {
+            print("ℹ️ User is not a member or case agent of operation \(operation.id) - skipping target load")
             return
         }
         
@@ -328,6 +462,60 @@ struct ActiveOperationDetailView: View {
         }
     }
     
+    private func loadOperationMembers() async {
+        do {
+            let members = try await SupabaseRPCService.shared.getOperationMembers(operationId: operation.id)
+            await MainActor.run {
+                self.operationMembers = members
+                print("👥 Loaded \(members.count) operation members")
+            }
+        } catch {
+            print("❌ Failed to load operation members: \(error)")
+        }
+    }
+    
+    private func leaveOperation() async {
+        guard let userId = appState.currentUserID else { return }
+        
+        do {
+            try await SupabaseRPCService.shared.leaveOperation(operationId: operation.id, userId: userId)
+            
+            // Clear active operation from app state
+            await MainActor.run {
+                appState.activeOperationID = nil
+                appState.activeOperation = nil
+            }
+            
+            // Reload operations list
+            await OperationStore.shared.loadOperations(for: userId)
+            
+            print("✅ Left operation successfully")
+        } catch {
+            print("❌ Failed to leave operation: \(error)")
+        }
+    }
+    
+    private func endOperation() async {
+        do {
+            try await SupabaseRPCService.shared.endOperation(operationId: operation.id)
+            
+            // Clear active operation from app state
+            await MainActor.run {
+                appState.activeOperationID = nil
+                appState.activeOperation = nil
+            }
+            
+            // Reload operations list
+            if let userId = appState.currentUserID {
+                await OperationStore.shared.loadOperations(for: userId)
+            }
+            
+            print("✅ Operation ended successfully")
+        } catch {
+            print("❌ Failed to end operation: \(error)")
+        }
+    }
+    
     private func refreshData() async {
         print("🔄 Refreshing operation data...")
         
@@ -339,9 +527,11 @@ struct ActiveOperationDetailView: View {
             self.isMember = isUserMember
         }
         
-        // Only load targets if user is a member
-        guard isUserMember else {
-            print("ℹ️ User is not a member - skipping refresh")
+        // Load targets if user is a member OR if they're the case agent (for cloning ended operations)
+        let shouldLoadTargets = isUserMember || isCaseAgent
+        
+        guard shouldLoadTargets else {
+            print("ℹ️ User is not a member or case agent - skipping refresh")
             return
         }
         

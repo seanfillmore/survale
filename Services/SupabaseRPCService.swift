@@ -134,6 +134,40 @@ final class SupabaseRPCService: @unchecked Sendable {
             .execute()
     }
     
+    /// Transfer operation to a new case agent
+    nonisolated func transferOperation(operationId: UUID, newCaseAgentId: UUID) async throws {
+        struct TransferParams: Encodable, Sendable {
+            let operation_id: String
+            let new_case_agent_id: String
+        }
+        
+        let params = TransferParams(
+            operation_id: operationId.uuidString,
+            new_case_agent_id: newCaseAgentId.uuidString
+        )
+        
+        try await client
+            .rpc("rpc_transfer_operation", params: params)
+            .execute()
+    }
+    
+    /// Leave an operation
+    nonisolated func leaveOperation(operationId: UUID, userId: UUID) async throws {
+        struct LeaveParams: Encodable, Sendable {
+            let operation_id: String
+            let user_id: String
+        }
+        
+        let params = LeaveParams(
+            operation_id: operationId.uuidString,
+            user_id: userId.uuidString
+        )
+        
+        try await client
+            .rpc("rpc_leave_operation", params: params)
+            .execute()
+    }
+    
     // MARK: - Member Management
     
     /// Invite a user to an operation
