@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var isSaving = false
     @State private var error: String?
     @State private var successMessage: String?
+    @State private var isPhoneValid = false
 
     var body: some View {
         NavigationView {
@@ -54,10 +55,14 @@ struct SettingsView: View {
                         SettingsSectionHeader(title: "Personal Information")
                         
                         SettingsTextField(icon: "person.fill", placeholder: "First Name", text: $firstName)
+                            .autocorrectionDisabled()
                         
                         SettingsTextField(icon: "person.fill", placeholder: "Last Name", text: $lastName)
+                            .autocorrectionDisabled()
                         
                         SettingsTextField(icon: "signature", placeholder: "Call Sign", text: $callsign)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.characters)
                         
                         HStack {
                             Image(systemName: "phone.fill")
@@ -73,7 +78,14 @@ struct SettingsView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(12)
                         .onChange(of: phoneNumber) { _, newValue in
-                            phoneNumber = formatPhoneNumber(newValue)
+                            let formatted = formatPhoneNumber(newValue)
+                            if phoneNumber != formatted {
+                                phoneNumber = formatted
+                            }
+                            // Validate async to avoid blocking UI
+                            Task { @MainActor in
+                                isPhoneValid = isValidPhoneNumber(formatted)
+                            }
                         }
                         
                         // Email (read-only)
@@ -231,11 +243,11 @@ struct SettingsView: View {
     }
     
     private var canSave: Bool {
-        // Check if fields are valid
+        // Check if fields are valid (use cached phone validation)
         let fieldsValid = !firstName.isEmpty &&
                          !lastName.isEmpty &&
                          !callsign.isEmpty &&
-                         isValidPhoneNumber(phoneNumber)
+                         isPhoneValid
         
         // Check if anything has changed
         let hasChanges = firstName != originalFirstName ||
@@ -316,6 +328,9 @@ struct SettingsView: View {
             originalPhoneNumber = phoneNumber
             originalVehicleType = vehicleType
             originalVehicleColor = vehicleColor
+            
+            // Initialize phone validation
+            isPhoneValid = isValidPhoneNumber(phoneNumber)
             
         } catch {
             self.error = "Failed to load profile: \(error.localizedDescription)"
