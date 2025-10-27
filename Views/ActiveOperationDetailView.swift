@@ -8,6 +8,11 @@
 import SwiftUI
 import MapKit
 
+struct TransferSheetData: Identifiable {
+    let id = UUID()
+    let members: [User]
+}
+
 struct ActiveOperationDetailView: View {
     let operation: Operation
     
@@ -25,7 +30,7 @@ struct ActiveOperationDetailView: View {
     @State private var showingJoinRequests = false
     @State private var isRefreshing = false
     @State private var showingEndConfirm = false
-    @State private var showingTransferSheet = false
+    @State private var transferSheetData: TransferSheetData?
     @State private var showingLeaveConfirm = false
     @State private var operationMembers: [User] = []
     @State private var showingCloneOperation = false
@@ -232,7 +237,8 @@ struct ActiveOperationDetailView: View {
                                     // Reload members to ensure we have the latest data
                                     await loadOperationMembers()
                                     await MainActor.run {
-                                        showingTransferSheet = true
+                                        // Set members to trigger sheet presentation
+                                        transferSheetData = TransferSheetData(members: operationMembers)
                                     }
                                 }
                             } label: {
@@ -340,8 +346,9 @@ struct ActiveOperationDetailView: View {
         .refreshable {
             await refreshData()
         }
-        .sheet(isPresented: $showingTransferSheet) {
-            TransferOperationSheet(operation: operation, members: operationMembers)
+        .sheet(item: $transferSheetData) { data in
+            TransferOperationSheet(operation: operation, members: data.members)
+                .presentationDetents([.large])
         }
         .sheet(isPresented: $showingCloneOperation) {
             CreateOperationView(
