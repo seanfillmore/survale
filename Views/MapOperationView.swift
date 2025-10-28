@@ -47,6 +47,52 @@ struct MapOperationView: View {
     }
 
     var body: some View {
+        contentView
+            .navigationTitle("Map")
+    }
+    
+    // MARK: - Main Content View
+    
+    @ViewBuilder
+    private var contentView: some View {
+        mainContent
+            .sheet(item: $assignmentData) { data in
+                AssignLocationSheet(
+                    coordinate: data.coordinate,
+                    operationId: data.operationId,
+                    teamMembers: data.teamMembers
+                )
+            }
+            .sheet(item: $selectedTarget) { target in
+                TargetInfoSheet(target: target)
+            }
+            .sheet(item: $selectedStaging) { staging in
+                StagingInfoSheet(staging: staging)
+            }
+            .sheet(item: $selectedMember) { member in
+                TeamMemberInfoSheet(member: member, assignmentService: assignmentService, routeService: routeService, operationId: appState.activeOperationID)
+            }
+            .task {
+                await loadInitialData()
+            }
+            .onAppear {
+                handleViewAppear()
+            }
+            .onChange(of: appState.activeOperationID) { _, _ in
+                handleOperationChange()
+            }
+            .onChange(of: assignmentService.assignedLocations) { _, _ in
+                handleAssignmentsChange()
+            }
+            .onChange(of: loc.lastLocation) { _, _ in
+                handleLocationChange()
+            }
+            .onChange(of: navigationTarget) { _, newTarget in
+                handleNavigationTarget(newTarget)
+            }
+    }
+    
+    private var mainContent: some View {
         VStack(spacing: 0) {
             headerSection
             
@@ -55,105 +101,6 @@ struct MapOperationView: View {
             } else {
                 mapContentView
             }
-        }
-        .navigationTitle("Map")
-        .sheet(item: $assignmentData) { data in
-            AssignLocationSheet(
-                coordinate: data.coordinate,
-                operationId: data.operationId,
-                teamMembers: data.teamMembers
-            )
-        }
-        .sheet(item: $selectedTarget) { target in
-            TargetInfoSheet(target: target)
-        }
-        .sheet(item: $selectedStaging) { staging in
-            StagingInfoSheet(staging: staging)
-        }
-        .sheet(item: $selectedMember) { member in
-            TeamMemberInfoSheet(member: member, assignmentService: assignmentService, routeService: routeService, operationId: appState.activeOperationID)
-        }
-        .task {
-            // Load cached data immediately (synchronous, instant)
-            if let operationId = appState.activeOperationID {
-                targets = dataCache.getTargets(for: operationId)
-                stagingPoints = dataCache.getStagingPoints(for: operationId)
-                teamMembers = dataCache.getTeamMembers(for: operationId)
-            }
-            
-            // Defer heavy operations slightly to let view render
-            try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
-            
-            // Now do the heavy lifting in background
-            await subscribeToRealtimeUpdates()
-            
-            // Load assignments
-            if let operationId = appState.activeOperationID {
-                await assignmentService.fetchAssignments(for: operationId)
-                await assignmentService.subscribeToAssignments(operationId: operationId)
-            }
-            
-            // Calculate route for user's active assignment
-            await calculateRouteForCurrentUser()
-        }
-        .onAppear {
-            // Allow view to render first, then load data
-            Task {
-                // Tiny delay to let tab animation complete
-                try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (1 frame at 60fps)
-                
-                // Load from cache immediately (no await, instant)
-                if let operationId = appState.activeOperationID {
-                    targets = dataCache.getTargets(for: operationId)
-                    stagingPoints = dataCache.getStagingPoints(for: operationId)
-                    teamMembers = dataCache.getTeamMembers(for: operationId)
-                    
-                    // Start background refresh
-                    await loadFromCacheOrFetch()
-                    
-                    // Always load fresh team members to ensure accurate assignment list
-                    await loadTeamMembers()
-                }
-                
-                // Defer map rendering until data is loaded
-                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                isMapReady = true
-            }
-        }
-        .onChange(of: appState.activeOperationID) { _, _ in
-            // Clear map when operation changes
-            isMapReady = false
-        }
-        .onChange(of: assignmentService.assignedLocations) { _, _ in
-            // Recalculate route when assignments change
-            Task {
-                await updateRouteForCurrentUser()
-            }
-        }
-        .onChange(of: loc.lastLocation) { _, _ in
-            // Update route when user moves
-            Task {
-                await updateRouteForCurrentUser()
-            }
-        }
-        .onChange(of: navigationTarget) { _, newTarget in
-            guard let target = newTarget else { return }
-            
-            switch target {
-            case .target(let targetId):
-                if let target = targets.first(where: { $0.id == targetId }),
-                   let coordinate = target.coordinate {
-                    zoomToLocation(coordinate: coordinate, label: target.label)
-                }
-            case .staging(let stagingId):
-                if let staging = stagingPoints.first(where: { $0.id == stagingId }),
-                   let coordinate = staging.coordinate {
-                    zoomToLocation(coordinate: coordinate, label: staging.label)
-                }
-            }
-            
-            // Clear the navigation target
-            navigationTarget = nil
         }
     }
     
@@ -798,6 +745,96 @@ struct MapOperationView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal)
+    }
+    
+    // MARK: - Lifecycle Handlers
+    
+    private func loadInitialData() async {
+        // Load cached data immediately (synchronous, instant)
+        if let operationId = appState.activeOperationID {
+            targets = dataCache.getTargets(for: operationId)
+            stagingPoints = dataCache.getStagingPoints(for: operationId)
+            teamMembers = dataCache.getTeamMembers(for: operationId)
+        }
+        
+        // Defer heavy operations slightly to let view render
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Now do the heavy lifting in background
+        await subscribeToRealtimeUpdates()
+        
+        // Load assignments
+        if let operationId = appState.activeOperationID {
+            await assignmentService.fetchAssignments(for: operationId)
+            await assignmentService.subscribeToAssignments(operationId: operationId)
+        }
+        
+        // Calculate route for user's active assignment
+        await calculateRouteForCurrentUser()
+    }
+    
+    private func handleViewAppear() {
+        // Allow view to render first, then load data
+        Task {
+            // Tiny delay to let tab animation complete
+            try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (1 frame at 60fps)
+            
+            // Load from cache immediately (no await, instant)
+            if let operationId = appState.activeOperationID {
+                targets = dataCache.getTargets(for: operationId)
+                stagingPoints = dataCache.getStagingPoints(for: operationId)
+                teamMembers = dataCache.getTeamMembers(for: operationId)
+                
+                // Start background refresh
+                await loadFromCacheOrFetch()
+                
+                // Always load fresh team members to ensure accurate assignment list
+                await loadTeamMembers()
+            }
+            
+            // Defer map rendering until data is loaded
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            isMapReady = true
+        }
+    }
+    
+    private func handleOperationChange() {
+        // Clear map when operation changes
+        isMapReady = false
+    }
+    
+    private func handleAssignmentsChange() {
+        // Recalculate route when assignments change
+        Task {
+            await updateRouteForCurrentUser()
+        }
+    }
+    
+    private func handleLocationChange() {
+        // Update route when user moves
+        Task {
+            await updateRouteForCurrentUser()
+        }
+    }
+    
+    private func handleNavigationTarget(_ newTarget: MapNavigationTarget?) {
+        guard let target = newTarget else { return }
+        
+        switch target {
+        case .target(let targetId):
+            if let target = targets.first(where: { $0.id == targetId }),
+               let coordinate = target.coordinate {
+                zoomToLocation(coordinate: coordinate, label: target.label)
+            }
+        case .staging(let stagingId):
+            if let staging = stagingPoints.first(where: { $0.id == stagingId }),
+               let coordinate = staging.coordinate {
+                zoomToLocation(coordinate: coordinate, label: staging.label)
+            }
+        }
+        
+        // Clear the navigation target
+        navigationTarget = nil
     }
     
     // MARK: - Helper Functions
