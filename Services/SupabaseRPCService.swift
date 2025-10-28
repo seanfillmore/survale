@@ -80,9 +80,9 @@ final class SupabaseRPCService: @unchecked Sendable {
     /// Returns the operation ID
     nonisolated func createOperation(name: String, incidentNumber: String?, isDraft: Bool = false) async throws -> UUID {
         struct CreateOperationParams: Encodable, Sendable {
-            let name: String
-            let incident_number: String?
-            let is_draft: Bool
+            let p_name: String
+            let p_incident_number: String?
+            let p_is_draft: Bool
         }
         
         struct CreateOperationResponse: Decodable, Sendable {
@@ -90,9 +90,9 @@ final class SupabaseRPCService: @unchecked Sendable {
         }
         
         let params = CreateOperationParams(
-            name: name,
-            incident_number: incidentNumber,
-            is_draft: isDraft
+            p_name: name,
+            p_incident_number: incidentNumber,
+            p_is_draft: isDraft
         )
         
         let response: CreateOperationResponse = try await client
