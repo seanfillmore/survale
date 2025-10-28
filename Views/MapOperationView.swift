@@ -210,34 +210,43 @@ struct MapOperationView: View {
                             assignment.label ?? "Assignment",
                             coordinate: assignment.coordinate
                         ) {
-                            VStack(spacing: 2) {
-                                Image(systemName: assignment.status.icon)
-                                    .font(.title2)
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                                    .background(assignment.status.color, in: Circle())
-                                
-                                // Show callsign or ETA
-                                if let callsign = assignment.assignedToCallsign {
-                                    Text(callsign)
-                                        .font(.caption2)
-                                        .fontWeight(.bold)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.white)
-                                        .cornerRadius(4)
+                            Button {
+                                // Find the assigned team member and show their info
+                                let assignedUserId = assignment.assignedToUserId
+                                if let member = teamMembers.first(where: { $0.id == assignedUserId }) {
+                                    selectedMember = member
                                 }
-                                
-                                // Show ETA for case agent
-                                if isCaseAgent, assignment.status == .enRoute {
-                                    if let routeInfo = routeService.getRoute(for: assignment.id) {
-                                        Text(routeInfo.travelTimeText)
-                                            .font(.caption2.bold())
-                                            .foregroundStyle(.white)
+                            } label: {
+                                VStack(spacing: 2) {
+                                    Image(systemName: assignment.status.icon)
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .background(assignment.status.color, in: Circle())
+                                    
+                                    // Show callsign
+                                    if let callsign = assignment.assignedToCallsign {
+                                        Text(callsign)
+                                            .font(.caption2)
+                                            .fontWeight(.bold)
                                             .padding(.horizontal, 6)
                                             .padding(.vertical, 2)
-                                            .background(assignment.status.color)
+                                            .background(Color.white)
+                                            .foregroundStyle(.primary)
                                             .cornerRadius(4)
+                                    }
+                                    
+                                    // Show ETA when en route (for both case agent and assigned user)
+                                    if assignment.status == .enRoute {
+                                        if let routeInfo = routeService.getRoute(for: assignment.id) {
+                                            Text(routeInfo.travelTimeText)
+                                                .font(.caption2.bold())
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(assignment.status.color)
+                                                .cornerRadius(4)
+                                        }
                                     }
                                 }
                             }
