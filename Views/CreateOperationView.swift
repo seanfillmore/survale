@@ -929,23 +929,38 @@ struct StagingEditor: View {
         
         editingStagingId = stagingPoint.id
         label = stagingPoint.label
-        address = stagingPoint.address
         latitude = stagingPoint.lat
         longitude = stagingPoint.lng
         
-        // Parse city and zip from address if possible
+        // Parse address into components (format: "street, city, zip")
         let components = stagingPoint.address.components(separatedBy: ", ")
         if components.count >= 3 {
-            // Assuming format: "street, city, zip"
+            // Full format: "street, city, zip"
+            address = components.dropLast(2).joined(separator: ", ")
             city = components[components.count - 2]
             zipCode = components.last ?? ""
         } else if components.count == 2 {
-            city = components.first ?? ""
-            zipCode = components.last ?? ""
+            // Two parts: could be "street, city" or "street, zip"
+            address = components.first ?? ""
+            // Try to determine if second part is zip (numeric) or city
+            let secondPart = components.last ?? ""
+            if secondPart.rangeOfCharacter(from: CharacterSet.decimalDigits) != nil {
+                // Looks like a zip code
+                city = ""
+                zipCode = secondPart
+            } else {
+                // Probably a city
+                city = secondPart
+                zipCode = ""
+            }
         } else {
+            // Single component - use as street address
+            address = stagingPoint.address
             city = ""
             zipCode = ""
         }
+        
+        print("   Parsed - Street: '\(address)', City: '\(city)', Zip: '\(zipCode)'")
     }
     
     private func clearFields() {
