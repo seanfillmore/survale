@@ -78,6 +78,10 @@ struct SaveAsTemplateView: View {
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        print("🔘 Save button tapped")
+                        print("   Template name: '\(templateName)'")
+                        print("   Is saving: \(isSaving)")
+                        print("   Button disabled: \(templateName.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)")
                         saveTemplate()
                     }
                     .disabled(templateName.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
@@ -95,10 +99,18 @@ struct SaveAsTemplateView: View {
     }
     
     private func saveTemplate() {
+        print("📝 saveTemplate() called")
+        print("   isSaving before: \(isSaving)")
         isSaving = true
+        print("   isSaving after: \(isSaving)")
         
         Task {
             do {
+                print("   Checking user context...")
+                print("   currentUserID: \(appState.currentUserID?.uuidString ?? "nil")")
+                print("   teamId: \(appState.currentUser?.teamId.uuidString ?? "nil")")
+                print("   agencyId: \(appState.currentUser?.agencyId.uuidString ?? "nil")")
+                
                 guard let userId = appState.currentUserID,
                       let teamId = appState.currentUser?.teamId,
                       let agencyId = appState.currentUser?.agencyId else {
