@@ -1628,6 +1628,8 @@ final class SupabaseRPCService: @unchecked Sendable {
         let staging = response.staging.compactMap { stagingResp -> StagingPoint? in
             let stagingId = stagingResp.id.flatMap { UUID(uuidString: $0) } ?? UUID()
             
+            print("   📍 Staging from DB: label='\(stagingResp.label)', address='\(stagingResp.address ?? "nil")', lat=\(stagingResp.latitude), lng=\(stagingResp.longitude)")
+            
             return StagingPoint(
                 id: stagingId,
                 label: stagingResp.label,

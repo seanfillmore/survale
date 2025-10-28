@@ -252,6 +252,14 @@ struct CreateOperationView: View {
     
     private func applyTemplate(_ template: OperationTemplate) {
         print("📋 Applying template: \(template.name)")
+        print("   Targets: \(template.targets.count)")
+        print("   Staging: \(template.staging.count)")
+        
+        // Debug staging points
+        for (index, stage) in template.staging.enumerated() {
+            print("   Staging[\(index)]: label='\(stage.label)', address='\(stage.address)', lat=\(stage.lat ?? 0), lng=\(stage.lng ?? 0)")
+        }
+        
         name = template.name
         targets = template.targets
         staging = template.staging
