@@ -820,18 +820,8 @@ struct MapOperationView: View {
     private func handleNavigationTarget(_ newTarget: MapNavigationTarget?) {
         guard let target = newTarget else { return }
         
-        switch target {
-        case .target(let targetId):
-            if let target = targets.first(where: { $0.id == targetId }),
-               let coordinate = target.coordinate {
-                zoomToLocation(coordinate: coordinate, label: target.label)
-            }
-        case .staging(let stagingId):
-            if let staging = stagingPoints.first(where: { $0.id == stagingId }),
-               let coordinate = staging.coordinate {
-                zoomToLocation(coordinate: coordinate, label: staging.label)
-            }
-        }
+        // Navigate to the provided coordinate
+        zoomToLocation(coordinate: target.coordinate, label: target.label)
         
         // Clear the navigation target
         navigationTarget = nil
