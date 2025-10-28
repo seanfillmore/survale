@@ -11,14 +11,14 @@ import CoreLocation
 // MARK: - StagingPoint
 
 /// Represents a staging location for an operation (e.g., meeting point, safe house)
-struct StagingPoint: Identifiable, Codable, Equatable {
+struct StagingPoint: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var label: String
     var address: String
     var lat: Double?
     var lng: Double?
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         label: String,
         address: String,
@@ -32,7 +32,7 @@ struct StagingPoint: Identifiable, Codable, Equatable {
         self.lng = lng
     }
     
-    var coordinate: CLLocationCoordinate2D? {
+    nonisolated var coordinate: CLLocationCoordinate2D? {
         guard let lat = lat, let lng = lng else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lng)
     }

@@ -21,6 +21,11 @@
 		45107EA52EAF9BAE00E337C9 /* AddressSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107EA42EAF9BAE00E337C9 /* AddressSearchField.swift */; };
 		4525B99B2EB023D4001051FB /* TemplatePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B99A2EB023D4001051FB /* TemplatePickerView.swift */; };
 		4525B99C2EB023D4001051FB /* SaveAsTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9992EB023D4001051FB /* SaveAsTemplateView.swift */; };
+		4525B9B42EB069B2001051FB /* TargetMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9B22EB069B2001051FB /* TargetMarker.swift */; };
+		4525B9B52EB069B2001051FB /* TargetInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9B12EB069B2001051FB /* TargetInfoSheet.swift */; };
+		4525B9B62EB069B2001051FB /* StagingInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9B02EB069B2001051FB /* StagingInfoSheet.swift */; };
+		4525B9B72EB069B2001051FB /* TeamMemberInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9B32EB069B2001051FB /* TeamMemberInfoSheet.swift */; };
+		4525B9B82EB069B2001051FB /* InfoDetailRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9AF2EB069B2001051FB /* InfoDetailRow.swift */; };
 		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
 		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
 		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
@@ -75,6 +80,11 @@
 		45107EA42EAF9BAE00E337C9 /* AddressSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressSearchField.swift; sourceTree = "<group>"; };
 		4525B9992EB023D4001051FB /* SaveAsTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveAsTemplateView.swift; sourceTree = "<group>"; };
 		4525B99A2EB023D4001051FB /* TemplatePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplatePickerView.swift; sourceTree = "<group>"; };
+		4525B9AF2EB069B2001051FB /* InfoDetailRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoDetailRow.swift; sourceTree = "<group>"; };
+		4525B9B02EB069B2001051FB /* StagingInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StagingInfoSheet.swift; sourceTree = "<group>"; };
+		4525B9B12EB069B2001051FB /* TargetInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetInfoSheet.swift; sourceTree = "<group>"; };
+		4525B9B22EB069B2001051FB /* TargetMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetMarker.swift; sourceTree = "<group>"; };
+		4525B9B32EB069B2001051FB /* TeamMemberInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamMemberInfoSheet.swift; sourceTree = "<group>"; };
 		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
 		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
 		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
@@ -178,6 +188,11 @@
 		45B42B232EA2E16000DF32CD /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4525B9AF2EB069B2001051FB /* InfoDetailRow.swift */,
+				4525B9B02EB069B2001051FB /* StagingInfoSheet.swift */,
+				4525B9B12EB069B2001051FB /* TargetInfoSheet.swift */,
+				4525B9B22EB069B2001051FB /* TargetMarker.swift */,
+				4525B9B32EB069B2001051FB /* TeamMemberInfoSheet.swift */,
 				4525B9992EB023D4001051FB /* SaveAsTemplateView.swift */,
 				4525B99A2EB023D4001051FB /* TemplatePickerView.swift */,
 				45107EA42EAF9BAE00E337C9 /* AddressSearchField.swift */,
@@ -355,6 +370,11 @@
 				45B42B572EA3C01F00DF32CD /* OpTargetImageManager.swift in Sources */,
 				4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */,
 				45B42B222EA2E13D00DF32CD /* SettingsView.swift in Sources */,
+				4525B9B42EB069B2001051FB /* TargetMarker.swift in Sources */,
+				4525B9B52EB069B2001051FB /* TargetInfoSheet.swift in Sources */,
+				4525B9B62EB069B2001051FB /* StagingInfoSheet.swift in Sources */,
+				4525B9B72EB069B2001051FB /* TeamMemberInfoSheet.swift in Sources */,
+				4525B9B82EB069B2001051FB /* InfoDetailRow.swift in Sources */,
 				45107E762EAD63B100E337C9 /* AssignmentService.swift in Sources */,
 				4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */,
 				45B42B482EA3224D00DF32CD /* CreateOperationView.swift in Sources */,

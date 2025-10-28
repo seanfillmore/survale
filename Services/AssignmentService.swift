@@ -165,51 +165,56 @@ final class AssignmentService: ObservableObject {
 
         let channel = client.channel("db-changes-assigned-locations")
 
-        let insertChanges = channel.postgresChange(
+        // Listen for inserts
+        _ = channel.onPostgresChange(
             InsertAction.self,
             schema: "public",
             table: "assigned_locations",
             filter: "operation_id=eq.\(operationId.uuidString)"
-        )
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                print("⚡️ Realtime: New assigned location inserted")
+                await self.fetchAssignments(for: operationId)
+            }
+        }
 
-        let updateChanges = channel.postgresChange(
+        // Listen for updates
+        _ = channel.onPostgresChange(
             UpdateAction.self,
             schema: "public",
             table: "assigned_locations",
             filter: "operation_id=eq.\(operationId.uuidString)"
-        )
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                print("⚡️ Realtime: Assigned location updated")
+                await self.fetchAssignments(for: operationId)
+            }
+        }
 
-        let deleteChanges = channel.postgresChange(
+        // Listen for deletes
+        _ = channel.onPostgresChange(
             DeleteAction.self,
             schema: "public",
             table: "assigned_locations",
             filter: "operation_id=eq.\(operationId.uuidString)"
-        )
-
-        Task { @MainActor in
-            for await change in insertChanges {
-                print("⚡️ Realtime: New assigned location inserted")
-                await fetchAssignments(for: operationId)
-            }
-        }
-
-        Task { @MainActor in
-            for await change in updateChanges {
-                print("⚡️ Realtime: Assigned location updated")
-                await fetchAssignments(for: operationId)
-            }
-        }
-
-        Task { @MainActor in
-            for await change in deleteChanges {
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
                 print("⚡️ Realtime: Assigned location deleted")
-                await fetchAssignments(for: operationId)
+                await self.fetchAssignments(for: operationId)
             }
         }
 
-        await channel.subscribe()
-        assignmentChannel = channel
-        print("✅ Realtime subscription for assigned_locations active.")
+        // Subscribe with error handling
+        do {
+            try await channel.subscribeWithError()
+            assignmentChannel = channel
+            print("✅ Realtime subscription for assigned_locations active.")
+        } catch {
+            print("❌ Assignment subscription error: \(error)")
+        }
 
         // Initial fetch after subscription is set up
         await fetchAssignments(for: operationId)

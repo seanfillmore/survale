@@ -30,6 +30,11 @@ struct MapOperationView: View {
     @State private var assignmentData: AssignmentData?
     @State private var teamMembers: [User] = []
     
+    // Info card state
+    @State private var selectedTarget: OpTarget?
+    @State private var selectedStaging: StagingPoint?
+    @State private var selectedMember: User?
+    
     struct AssignmentData: Identifiable {
         let id = UUID()
         let coordinate: CLLocationCoordinate2D
@@ -40,47 +45,81 @@ struct MapOperationView: View {
     enum MapStyleType {
         case standard, hybrid, satellite
     }
+    
+    // Haptic generator for map interactions (heavy for stronger feedback)
+    private let hapticGenerator = UIImpactFeedbackGenerator(style: .heavy)
+    private let warningHaptic = UINotificationFeedbackGenerator()
 
     var body: some View {
+        contentView
+            .navigationTitle("Map")
+    }
+    
+    // MARK: - Main Content View
+    
+    @ViewBuilder
+    private var contentView: some View {
+        mainContent
+            .sheet(item: $assignmentData) { data in
+                AssignLocationSheet(
+                    coordinate: data.coordinate,
+                    operationId: data.operationId,
+                    teamMembers: data.teamMembers
+                )
+            }
+            .sheet(item: $selectedTarget) { target in
+                TargetInfoSheet(target: target)
+            }
+            .sheet(item: $selectedStaging) { staging in
+                StagingInfoSheet(staging: staging)
+            }
+            .sheet(item: $selectedMember) { member in
+                TeamMemberInfoSheet(member: member, assignmentService: assignmentService, routeService: routeService, operationId: appState.activeOperationID)
+            }
+            .task {
+                await loadInitialData()
+            }
+            .onAppear {
+                handleViewAppear()
+            }
+            .onChange(of: appState.activeOperationID) { _, _ in
+                handleOperationChange()
+            }
+            .onChange(of: assignmentService.assignedLocations) { _, _ in
+                handleAssignmentsChange()
+            }
+            .onChange(of: loc.lastLocation) { _, _ in
+                handleLocationChange()
+            }
+            .onChange(of: navigationTarget) { _, newTarget in
+                handleNavigationTarget(newTarget)
+            }
+    }
+    
+    private var mainContent: some View {
         VStack(spacing: 0) {
-            // Show assignment banner for current user's assignments
-            if let myAssignment = currentUserAssignment {
-                AssignmentBanner(assignment: myAssignment)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color(uiColor: .systemBackground))
-            }
-            
-            if needsPermissionUI {
-                permissionCard
-            }
+            headerSection
             
             if appState.activeOperationID == nil {
-                VStack(spacing: 12) {
-                    Image(systemName: "map.circle")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-                    
-                    Text("No active operation")
-                        .font(.headline)
-                    
-                    Text("Create or join an operation in the Ops tab to see the map.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal)
+                emptyStateView
             } else {
-                // Debug: Show staging point count
-                if !stagingPoints.isEmpty {
-                    Text("Showing \(stagingPoints.count) staging point(s)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                }
-                
-                MapReader { proxy in
-                    Map(position: $mapPosition, interactionModes: .all) {
+                mapContentView
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var mapContentView: some View {
+        // Debug: Show staging point count
+        if !stagingPoints.isEmpty {
+            Text("Showing \(stagingPoints.count) staging point(s)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+        }
+        
+        MapReader { proxy in
+            Map(position: $mapPosition, interactionModes: .all) {
                     // User location (distinct from team members, unless hidden)
                     if let userLocation = loc.lastLocation,
                        let currentUserId = appState.currentUserID,
@@ -106,12 +145,19 @@ struct MapOperationView: View {
                                 latitude: lastLocation.latitude,
                                 longitude: lastLocation.longitude
                             )) {
-                                VehicleMarker(
-                                    vehicleType: memberLocation.vehicleType,
-                                    color: memberLocation.vehicleColor ?? "gray",
-                                    heading: lastLocation.heading,
-                                    isCurrentUser: false
-                                )
+                                Button {
+                                    // Find the full user object for this member
+                                    if let member = teamMembers.first(where: { $0.id == userId }) {
+                                        selectedMember = member
+                                    }
+                                } label: {
+                                    VehicleMarker(
+                                        vehicleType: memberLocation.vehicleType,
+                                        color: memberLocation.vehicleColor ?? "gray",
+                                        heading: lastLocation.heading,
+                                        isCurrentUser: false
+                                    )
+                                }
                             }
                         }
                     }
@@ -129,14 +175,19 @@ struct MapOperationView: View {
                         }
                     }
                     
-                    // Target locations (red pins, excluding hidden targets)
+                    // Target locations with status indicators (excluding hidden targets)
                     // Only render targets after map is ready (deferred rendering)
                     if isMapReady {
                         ForEach(targets) { target in
                             if let coordinate = target.coordinate,
                                !appState.hiddenTargetIds.contains(target.id) { // Filter out hidden targets
-                                Marker(target.label, systemImage: "target", coordinate: coordinate)
-                                    .tint(.red)
+                                Annotation(target.label, coordinate: coordinate) {
+                                    Button {
+                                        selectedTarget = target
+                                    } label: {
+                                        TargetMarker(target: target)
+                                    }
+                                }
                             }
                         }
                     }
@@ -146,8 +197,18 @@ struct MapOperationView: View {
                         ForEach(stagingPoints) { staging in
                             if let coordinate = staging.coordinate,
                                !appState.hiddenStagingIds.contains(staging.id) { // Filter out hidden staging points
-                                Marker(staging.label, systemImage: "mappin.circle.fill", coordinate: coordinate)
-                                    .tint(.green)
+                                Annotation(staging.label, coordinate: coordinate) {
+                                    Button {
+                                        selectedStaging = staging
+                                    } label: {
+                                        Image(systemName: "mappin.circle.fill")
+                                            .font(.title2)
+                                            .foregroundStyle(.white)
+                                            .padding(8)
+                                            .background(.green, in: Circle())
+                                            .shadow(radius: 3)
+                                    }
+                                }
                             }
                         }
                     }
@@ -159,34 +220,43 @@ struct MapOperationView: View {
                             assignment.label ?? "Assignment",
                             coordinate: assignment.coordinate
                         ) {
-                            VStack(spacing: 2) {
-                                Image(systemName: assignment.status.icon)
-                                    .font(.title2)
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                                    .background(assignment.status.color, in: Circle())
-                                
-                                // Show callsign or ETA
-                                if let callsign = assignment.assignedToCallsign {
-                                    Text(callsign)
-                                        .font(.caption2)
-                                        .fontWeight(.bold)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.white)
-                                        .cornerRadius(4)
+                            Button {
+                                // Find the assigned team member and show their info
+                                let assignedUserId = assignment.assignedToUserId
+                                if let member = teamMembers.first(where: { $0.id == assignedUserId }) {
+                                    selectedMember = member
                                 }
-                                
-                                // Show ETA for case agent
-                                if isCaseAgent, assignment.status == .enRoute {
-                                    if let routeInfo = routeService.getRoute(for: assignment.id) {
-                                        Text(routeInfo.travelTimeText)
-                                            .font(.caption2.bold())
-                                            .foregroundStyle(.white)
+                            } label: {
+                                VStack(spacing: 2) {
+                                    Image(systemName: assignment.status.icon)
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .background(assignment.status.color, in: Circle())
+                                    
+                                    // Show callsign
+                                    if let callsign = assignment.assignedToCallsign {
+                                        Text(callsign)
+                                            .font(.caption2)
+                                            .fontWeight(.bold)
                                             .padding(.horizontal, 6)
                                             .padding(.vertical, 2)
-                                            .background(assignment.status.color)
+                                            .background(Color.white)
+                                            .foregroundStyle(.primary)
                                             .cornerRadius(4)
+                                    }
+                                    
+                                    // Show ETA when en route (for both case agent and assigned user)
+                                    if assignment.status == .enRoute {
+                                        if let routeInfo = routeService.getRoute(for: assignment.id) {
+                                            Text(routeInfo.travelTimeText)
+                                                .font(.caption2.bold())
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(assignment.status.color)
+                                                .cornerRadius(4)
+                                        }
                                     }
                                 }
                             }
@@ -199,175 +269,107 @@ struct MapOperationView: View {
                             MapPolyline(routeInfo.polyline)
                                 .stroke(.blue, lineWidth: 4)
                         }
-                    }
-                    }
-                    .mapStyle(mapStyle)
-                    .gesture(
-                        LongPressGesture(minimumDuration: 0.5)
-                            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
-                            .onEnded { value in
-                                guard case .second(true, let drag?) = value else { return }
-                                guard isCaseAgent else {
-                                    print("⚠️ Only case agents can assign locations")
-                                    return
-                                }
-                                if let coordinate = proxy.convert(drag.location, from: .local) {
-                                    handleMapLongPress(at: coordinate)
-                                }
-                            }
-                    )
-                .mapControls {
-                    MapUserLocationButton()
-                    MapCompass()
                 }
-                .overlay(alignment: .topLeading) {
-                    // Map type switcher
-                    Button {
-                        cycleMapStyle()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: mapStyleIcon)
-                                .font(.title3)
-                            Text(mapStyleLabel)
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.gray.opacity(0.8))
-                        .cornerRadius(8)
-                        .shadow(radius: 4)
-                    }
-                    .padding(.leading, 12)
-                    .padding(.top, 12)
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    VStack(spacing: 12) {
-                        // Zoom to targets button
-                        Button {
-                            zoomToTargets()
-                        } label: {
-                            Image(systemName: "target")
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.red)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
+            }
+            .mapStyle(mapStyle)
+            .gesture(
+                LongPressGesture(minimumDuration: 0.5)
+                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                    .onEnded { value in
+                        print("🎯 Long press gesture ended: \(value)")
+                        guard case .second(true, let drag?) = value else {
+                            print("⚠️ Gesture pattern didn't match")
+                            return
                         }
                         
-                        // Zoom to team members button
-                        Button {
-                            zoomToTeamMembers()
-                        } label: {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
+                        guard let coordinate = proxy.convert(drag.location, from: .local) else {
+                            print("⚠️ Could not convert tap location to coordinate")
+                            return
                         }
-                    }
-                    .padding(.trailing, 12)
-                    .padding(.bottom, 20)
-                }
-                } // Close MapReader
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button(action: { showTrails.toggle() }) {
-                            Image(systemName: showTrails ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                        
+                        print("✅ Long press succeeded at coordinate: \(coordinate)")
+                        
+                        // Check permissions first
+                        if !isCaseAgent {
+                            print("⚠️ User is not case agent, showing warning haptic")
+                            warningHaptic.prepare()
+                            warningHaptic.notificationOccurred(.warning)
+                            return
                         }
+                        
+                        // Trigger haptic IMMEDIATELY and SYNCHRONOUSLY before any other operations
+                        print("📳 Triggering haptic NOW (before sheet)")
+                        hapticGenerator.prepare()
+                        hapticGenerator.impactOccurred()
+                        print("📳 Haptic triggered, now presenting sheet")
+                        
+                        // Present sheet immediately after haptic (synchronous)
+                        handleMapLongPress(at: coordinate)
+                        print("✅ Sheet presentation triggered")
                     }
-                }
-            }
-        }
-        .navigationTitle("Map")
-        .sheet(item: $assignmentData) { data in
-            AssignLocationSheet(
-                coordinate: data.coordinate,
-                operationId: data.operationId,
-                teamMembers: data.teamMembers  // Use captured team members from data
             )
-        }
-        .task {
-            // Load cached data immediately (synchronous, instant)
-            if let operationId = appState.activeOperationID {
-                targets = dataCache.getTargets(for: operationId)
-                stagingPoints = dataCache.getStagingPoints(for: operationId)
-                teamMembers = dataCache.getTeamMembers(for: operationId)
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
             }
-            
-            // Defer heavy operations slightly to let view render
-            try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
-            
-            // Now do the heavy lifting in background
-            await subscribeToRealtimeUpdates()
-            
-            // Load assignments
-            if let operationId = appState.activeOperationID {
-                await assignmentService.fetchAssignments(for: operationId)
-                await assignmentService.subscribeToAssignments(operationId: operationId)
-            }
-            
-            // Calculate route for user's active assignment
-            await calculateRouteForCurrentUser()
-        }
-        .onAppear {
-            // Allow view to render first, then load data
-            Task {
-                // Tiny delay to let tab animation complete
-                try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (1 frame at 60fps)
-                
-                // Load from cache immediately (no await, instant)
-                if let operationId = appState.activeOperationID {
-                    targets = dataCache.getTargets(for: operationId)
-                    stagingPoints = dataCache.getStagingPoints(for: operationId)
-                    teamMembers = dataCache.getTeamMembers(for: operationId)
+            .overlay(alignment: .topLeading) {
+                // Map type switcher
+                Button {
+                    cycleMapStyle()
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: mapStyleIcon)
+                            .font(.title3)
+                        Text(mapStyleLabel)
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.gray.opacity(0.8))
+                    .cornerRadius(8)
+                    .shadow(radius: 4)
                 }
-                
-                // Enable map rendering after data is loaded
-                isMapReady = true
-                
-                // CRITICAL: Load team members fresh (needed for assignments)
-                await loadTeamMembers()
-                
-                // Defer other network operations to not block animation
-                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms delay
-                
-                if let operationId = appState.activeOperationID {
-                    await assignmentService.fetchAssignments(for: operationId)
-                    await assignmentService.subscribeToAssignments(operationId: operationId)
+                .padding(.leading, 12)
+                .padding(.top, 12)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                VStack(spacing: 12) {
+                    // Zoom to targets button
+                    Button {
+                        zoomToTargets()
+                    } label: {
+                        Image(systemName: "target")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+                    
+                    // Zoom to team members button
+                    Button {
+                        zoomToTeamMembers()
+                    } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
                 }
+                .padding(.trailing, 12)
+                .padding(.bottom, 20)
             }
-        }
-        .onDisappear {
-            // Reset for next appearance
-            isMapReady = false
-            
-            Task {
-                await realtimeService.unsubscribeAll()
-                await assignmentService.unsubscribeFromAssignments()
-                loc.stopPublishing()
-            }
-        }
-        .onChange(of: navigationTarget) { _, newTarget in
-            if let target = newTarget {
-                zoomToLocation(coordinate: target.coordinate, label: target.label)
-                // Clear the target after zooming
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    navigationTarget = nil
+        } // Close MapReader
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: { showTrails.toggle() }) {
+                    Image(systemName: showTrails ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 }
-            }
-        }
-        .onChange(of: loc.lastLocation) { _, _ in
-            Task {
-                await updateRouteForCurrentUser()
-            }
-        }
-        .onChange(of: assignmentService.assignedLocations) { _, _ in
-            Task {
-                await calculateRouteForCurrentUser()
             }
         }
     }
@@ -757,6 +759,134 @@ struct MapOperationView: View {
         }
     }
     
+    // MARK: - View Components
+    
+    @ViewBuilder
+    private var headerSection: some View {
+        // Show assignment banner for current user's assignments
+        if let myAssignment = currentUserAssignment {
+            AssignmentBanner(assignment: myAssignment)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(uiColor: .systemBackground))
+        }
+        
+        if needsPermissionUI {
+            permissionCard
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "map.circle")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+            
+            Text("No active operation")
+                .font(.headline)
+            
+            Text("Create or join an operation in the Ops tab to see the map.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Lifecycle Handlers
+    
+    private func loadInitialData() async {
+        // Load cached data immediately (synchronous, instant)
+        if let operationId = appState.activeOperationID {
+            targets = dataCache.getTargets(for: operationId)
+            stagingPoints = dataCache.getStagingPoints(for: operationId)
+            teamMembers = dataCache.getTeamMembers(for: operationId)
+        }
+        
+        // Defer heavy operations slightly to let view render
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        
+        // Now do the heavy lifting in background
+        await subscribeToRealtimeUpdates()
+        
+        // Load assignments
+        if let operationId = appState.activeOperationID {
+            await assignmentService.fetchAssignments(for: operationId)
+            await assignmentService.subscribeToAssignments(operationId: operationId)
+        }
+        
+        // Calculate route for user's active assignment
+        await calculateRouteForCurrentUser()
+    }
+    
+    private func handleViewAppear() {
+        // Prepare haptic generators early for instant response
+        hapticGenerator.prepare()
+        warningHaptic.prepare()
+        
+        // Allow view to render first, then load data
+        Task {
+            // Tiny delay to let tab animation complete
+            try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (1 frame at 60fps)
+            
+            // Load from cache immediately (no await, instant)
+            if let operationId = appState.activeOperationID {
+                targets = dataCache.getTargets(for: operationId)
+                stagingPoints = dataCache.getStagingPoints(for: operationId)
+                teamMembers = dataCache.getTeamMembers(for: operationId)
+                
+                // Start background refresh
+                await loadFromCacheOrFetch()
+                
+                // Always load fresh team members to ensure accurate assignment list
+                await loadTeamMembers()
+            }
+            
+            // Defer map rendering until data is loaded
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            isMapReady = true
+        }
+    }
+    
+    private func handleOperationChange() {
+        // Clear map when operation changes
+        isMapReady = false
+    }
+    
+    private func handleAssignmentsChange() {
+        // Recalculate route when assignments change
+        Task {
+            await updateRouteForCurrentUser()
+        }
+    }
+    
+    private func handleLocationChange() {
+        // Update route when user moves
+        Task {
+            await updateRouteForCurrentUser()
+        }
+    }
+    
+    private func handleNavigationTarget(_ newTarget: MapNavigationTarget?) {
+        guard let target = newTarget else { return }
+        
+        // Navigate to the provided coordinate
+        zoomToLocation(coordinate: target.coordinate, label: target.label)
+        
+        // Clear the navigation target
+        navigationTarget = nil
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func iconForTargetKind(_ kind: OpTargetKind) -> String {
+        switch kind {
+        case .person: return "person.fill"
+        case .vehicle: return "car.fill"
+        case .location: return "mappin.circle.fill"
+        }
+    }
+    
     // MARK: - Route Calculation
     
     /// Calculate route for current user's active assignment
@@ -785,7 +915,7 @@ struct MapOperationView: View {
               let userLocation = loc.lastLocation?.coordinate else {
             // Clear route if no assignment or location
             if let assignment = currentUserAssignment {
-                await routeService.clearRoute(assignmentId: assignment.id)
+                routeService.clearRoute(assignmentId: assignment.id)
             }
             return
         }

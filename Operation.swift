@@ -41,7 +41,7 @@ struct Team: Identifiable, Codable, Equatable {
 // MARK: - User
 
 /// Represents a user in the system
-struct User: Identifiable, Codable, Equatable {
+struct User: Identifiable, Codable, Equatable, Sendable {
     let id: UUID  // matches auth.uid
     var email: String
     var teamId: UUID  // primary team
@@ -59,7 +59,7 @@ struct User: Identifiable, Codable, Equatable {
         return "\(first) \(last)"
     }
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         email: String,
         teamId: UUID,
@@ -160,7 +160,7 @@ enum JoinRequestStatus: String, Codable {
 
 // MARK: - Operation
 
-struct Operation: Identifiable, Equatable {
+struct Operation: Identifiable, Equatable, Sendable {
     let id: UUID
     var name: String
     var incidentNumber: String?
@@ -178,7 +178,7 @@ struct Operation: Identifiable, Equatable {
     var targets: [OpTarget]
     var staging: [StagingPoint]
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         name: String,
         incidentNumber: String? = nil,
@@ -283,7 +283,7 @@ struct OperationMember: Identifiable, Codable, Equatable {
 
 // MARK: - Operation Invite
 
-struct OperationInvite: Identifiable, Codable, Equatable {
+struct OperationInvite: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var operationId: UUID
     var inviterUserId: UUID
@@ -293,7 +293,7 @@ struct OperationInvite: Identifiable, Codable, Equatable {
     var expiresAt: Date
     var respondedAt: Date?
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         operationId: UUID,
         inviterUserId: UUID,
@@ -316,7 +316,7 @@ struct OperationInvite: Identifiable, Codable, Equatable {
 
 // MARK: - Join Request
 
-struct JoinRequest: Identifiable, Codable, Equatable {
+struct JoinRequest: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var operationId: UUID
     var requesterUserId: UUID
@@ -326,7 +326,7 @@ struct JoinRequest: Identifiable, Codable, Equatable {
     var respondedAt: Date?
     var respondedByUserId: UUID?
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         operationId: UUID,
         requesterUserId: UUID,
@@ -514,7 +514,7 @@ struct OperationTemplate: Identifiable, Codable, Equatable {
     var targets: [OpTarget]
     var staging: [StagingPoint]
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         name: String,
         description: String? = nil,

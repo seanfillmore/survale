@@ -406,7 +406,7 @@ struct ChatMessageBubble: View {
                 // Message bubble
                 VStack(alignment: .leading, spacing: 8) {
                     // Media content (photo or video)
-                    if message.mediaType == "photo", let mediaPath = message.mediaPath {
+                    if message.mediaType == "photo", let _ = message.mediaPath {
                         if let image = mediaImage {
                             Image(uiImage: image)
                                 .resizable()

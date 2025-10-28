@@ -7,9 +7,29 @@
 
 import Foundation
 import CoreLocation
+import SwiftUI
+
+/// Status of a target during an operation
+enum OpTargetStatus: String, Codable, CaseIterable {
+    case pending = "pending"    // Target identified but not yet under surveillance
+    case active = "active"      // Currently under active surveillance
+    case clear = "clear"        // Verified clear/no activity
+    
+    var color: Color {
+        switch self {
+        case .pending: return .yellow
+        case .active: return .red
+        case .clear: return .green
+        }
+    }
+    
+    var displayName: String {
+        rawValue.capitalized
+    }
+}
 
 /// A persistable description of an image that belongs to an OpTarget.
-struct OpTargetImage: Identifiable, Equatable, Codable, Hashable {
+struct OpTargetImage: Identifiable, Equatable, Codable, Hashable, Sendable {
     enum StorageKind: String, Codable { case localFile, remoteURL }
 
     let id: UUID
@@ -27,7 +47,7 @@ struct OpTargetImage: Identifiable, Equatable, Codable, Hashable {
     // Small cached thumb for fast grids (optional)
     var thumbLocalPath: String?
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         storageKind: StorageKind,
         localPath: String?,
@@ -55,11 +75,12 @@ struct OpTargetImage: Identifiable, Equatable, Codable, Hashable {
 }
 
 /// Updated target model with an images array.
-struct OpTarget: Identifiable, Equatable, Codable {
+struct OpTarget: Identifiable, Equatable, Codable, Sendable {
     let id: UUID
     var kind: OpTargetKind
     var label: String
     var notes: String?
+    var status: OpTargetStatus = .pending  // Default to pending
 
     // Person
     var personFirstName: String?
@@ -115,21 +136,29 @@ struct OpTarget: Identifiable, Equatable, Codable {
 }
 
 extension OpTarget {
-    var coordinate: CLLocationCoordinate2D? {
+    nonisolated var coordinate: CLLocationCoordinate2D? {
         guard let lat = locationLat, let lng = locationLng else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lng)
     }
     
     // Convenience initializers
-    init(id: UUID = UUID(), kind: OpTargetKind, personName: String?, phone: String?) {
+    nonisolated init(id: UUID = UUID(), kind: OpTargetKind, personName: String?, phone: String?) {
         self.id = id
         self.kind = kind
         self.label = personName ?? "Unknown Person"
-        self.personName = personName
+        // Split name into first/last for storage
+        if let name = personName {
+            let components = name.components(separatedBy: " ")
+            self.personFirstName = components.first
+            self.personLastName = components.count > 1 ? components.dropFirst().joined(separator: " ") : nil
+        } else {
+            self.personFirstName = nil
+            self.personLastName = nil
+        }
         self.personPhone = phone
     }
     
-    init(id: UUID = UUID(), kind: OpTargetKind, vehicleMake: String?, vehicleModel: String?, vehicleColor: String?, licensePlate: String?) {
+    nonisolated init(id: UUID = UUID(), kind: OpTargetKind, vehicleMake: String?, vehicleModel: String?, vehicleColor: String?, licensePlate: String?) {
         self.id = id
         self.kind = kind
         let desc = [vehicleColor, vehicleMake, vehicleModel].compactMap { $0 }.joined(separator: " ")
@@ -137,10 +166,10 @@ extension OpTarget {
         self.vehicleMake = vehicleMake
         self.vehicleModel = vehicleModel
         self.vehicleColor = vehicleColor
-        self.vehiclePlate = licensePlate
+        self.vehiclePlate = licensePlate  // Direct stored property
     }
     
-    init(id: UUID = UUID(), kind: OpTargetKind, locationName: String?, locationAddress: String?) {
+    nonisolated init(id: UUID = UUID(), kind: OpTargetKind, locationName: String?, locationAddress: String?) {
         self.id = id
         self.kind = kind
         self.label = locationName ?? locationAddress ?? "Unknown Location"

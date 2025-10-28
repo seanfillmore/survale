@@ -124,7 +124,7 @@ struct AssignLocationSheet: View {
         error = nil
         
         do {
-            try await AssignmentService.shared.assignLocation(
+            _ = try await AssignmentService.shared.assignLocation(
                 operationId: operationId,
                 assignedToUserId: userId,
                 coordinate: coordinate,

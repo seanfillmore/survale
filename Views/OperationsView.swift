@@ -336,8 +336,6 @@ struct OperationsView: View {
             await MainActor.run {
                 store.draftOperations.removeAll { $0.id == draftId }
             }
-        } catch {
-            print("❌ Failed to delete draft: \(error)")
         }
     }
 }

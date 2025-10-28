@@ -111,9 +111,9 @@ struct SaveAsTemplateView: View {
                 print("   teamId: \(appState.currentUser?.teamId.uuidString ?? "nil")")
                 print("   agencyId: \(appState.currentUser?.agencyId.uuidString ?? "nil")")
                 
-                guard let userId = appState.currentUserID,
-                      let teamId = appState.currentUser?.teamId,
-                      let agencyId = appState.currentUser?.agencyId else {
+                guard let _ = appState.currentUserID,
+                      let _ = appState.currentUser?.teamId,
+                      let _ = appState.currentUser?.agencyId else {
                     print("❌ Missing user context")
                     await MainActor.run {
                         isSaving = false
