@@ -41,7 +41,7 @@ struct Team: Identifiable, Codable, Equatable {
 // MARK: - User
 
 /// Represents a user in the system
-struct User: Identifiable, Codable, Equatable {
+struct User: Identifiable, Codable, Equatable, Sendable {
     let id: UUID  // matches auth.uid
     var email: String
     var teamId: UUID  // primary team
@@ -160,7 +160,7 @@ enum JoinRequestStatus: String, Codable {
 
 // MARK: - Operation
 
-struct Operation: Identifiable, Equatable {
+struct Operation: Identifiable, Equatable, Sendable {
     let id: UUID
     var name: String
     var incidentNumber: String?
@@ -283,7 +283,7 @@ struct OperationMember: Identifiable, Codable, Equatable {
 
 // MARK: - Operation Invite
 
-struct OperationInvite: Identifiable, Codable, Equatable {
+struct OperationInvite: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var operationId: UUID
     var inviterUserId: UUID

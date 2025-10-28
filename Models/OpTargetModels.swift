@@ -29,7 +29,7 @@ enum OpTargetStatus: String, Codable, CaseIterable {
 }
 
 /// A persistable description of an image that belongs to an OpTarget.
-struct OpTargetImage: Identifiable, Equatable, Codable, Hashable {
+struct OpTargetImage: Identifiable, Equatable, Codable, Hashable, Sendable {
     enum StorageKind: String, Codable { case localFile, remoteURL }
 
     let id: UUID
@@ -75,7 +75,7 @@ struct OpTargetImage: Identifiable, Equatable, Codable, Hashable {
 }
 
 /// Updated target model with an images array.
-struct OpTarget: Identifiable, Equatable, Codable {
+struct OpTarget: Identifiable, Equatable, Codable, Sendable {
     let id: UUID
     var kind: OpTargetKind
     var label: String

@@ -11,7 +11,7 @@ import CoreLocation
 // MARK: - StagingPoint
 
 /// Represents a staging location for an operation (e.g., meeting point, safe house)
-struct StagingPoint: Identifiable, Codable, Equatable {
+struct StagingPoint: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var label: String
     var address: String
