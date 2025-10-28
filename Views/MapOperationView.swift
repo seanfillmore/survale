@@ -137,7 +137,7 @@ struct MapOperationView: View {
                         }
                     }
                     
-                    // Target locations (red pins)
+                    // Target locations with status indicators
                     // Only render targets after map is ready (deferred rendering)
                     if isMapReady {
                         ForEach(targets) { target in
@@ -146,12 +146,7 @@ struct MapOperationView: View {
                                     Button {
                                         selectedTarget = target
                                     } label: {
-                                        Image(systemName: iconForTargetKind(target.kind))
-                                            .font(.title2)
-                                            .foregroundStyle(.white)
-                                            .padding(8)
-                                            .background(.red, in: Circle())
-                                            .shadow(radius: 3)
+                                        TargetMarker(target: target)
                                     }
                                 }
                             }
@@ -896,6 +891,55 @@ struct VehicleMarker: View {
     }
 }
 
+// MARK: - Target Marker with Status
+
+struct TargetMarker: View {
+    let target: OpTarget
+    @State private var isPulsing = false
+    
+    var body: some View {
+        ZStack {
+            // Pulsing ring for active targets
+            if target.status == .active {
+                Circle()
+                    .fill(target.status.color.opacity(0.3))
+                    .frame(width: 50, height: 50)
+                    .scaleEffect(isPulsing ? 1.5 : 1.0)
+                    .opacity(isPulsing ? 0.0 : 0.8)
+                    .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: false), value: isPulsing)
+                    .onAppear { isPulsing = true }
+            }
+            
+            // Main marker
+            Image(systemName: iconForKind)
+                .font(.title2)
+                .foregroundStyle(.white)
+                .padding(8)
+                .background(target.status.color, in: Circle())
+                .shadow(radius: 3)
+                .overlay {
+                    // Status badge
+                    Circle()
+                        .fill(target.status.color)
+                        .frame(width: 12, height: 12)
+                        .overlay {
+                            Circle()
+                                .strokeBorder(.white, lineWidth: 2)
+                        }
+                        .offset(x: 12, y: -12)
+                }
+        }
+    }
+    
+    private var iconForKind: String {
+        switch target.kind {
+        case .person: return "person.fill"
+        case .vehicle: return "car.fill"
+        case .location: return "mappin.circle.fill"
+        }
+    }
+}
+
 // MARK: - OpTargetKind Extensions
 
 extension OpTargetKind {
@@ -920,16 +964,32 @@ struct TargetInfoSheet: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Header with icon
                     HStack(spacing: 16) {
-                        Image(systemName: iconForKind)
-                            .font(.system(size: 50))
-                            .foregroundStyle(colorForKind)
+                        ZStack {
+                            Circle()
+                                .fill(target.status.color.opacity(0.2))
+                                .frame(width: 70, height: 70)
+                            Image(systemName: iconForKind)
+                                .font(.system(size: 35))
+                                .foregroundStyle(target.status.color)
+                        }
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text(target.label)
                                 .font(.title2.bold())
-                            Text(kindLabel)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                Text(kindLabel)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                
+                                // Status badge
+                                Text(target.status.displayName)
+                                    .font(.caption.bold())
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(target.status.color.opacity(0.2))
+                                    .foregroundStyle(target.status.color)
+                                    .cornerRadius(6)
+                            }
                         }
                     }
                     .padding()

@@ -7,6 +7,26 @@
 
 import Foundation
 import CoreLocation
+import SwiftUI
+
+/// Status of a target during an operation
+enum OpTargetStatus: String, Codable, CaseIterable {
+    case pending = "pending"    // Target identified but not yet under surveillance
+    case active = "active"      // Currently under active surveillance
+    case clear = "clear"        // Verified clear/no activity
+    
+    var color: Color {
+        switch self {
+        case .pending: return .yellow
+        case .active: return .red
+        case .clear: return .green
+        }
+    }
+    
+    var displayName: String {
+        rawValue.capitalized
+    }
+}
 
 /// A persistable description of an image that belongs to an OpTarget.
 struct OpTargetImage: Identifiable, Equatable, Codable, Hashable {
@@ -60,6 +80,7 @@ struct OpTarget: Identifiable, Equatable, Codable {
     var kind: OpTargetKind
     var label: String
     var notes: String?
+    var status: OpTargetStatus = .pending  // Default to pending
 
     // Person
     var personFirstName: String?
