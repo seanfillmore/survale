@@ -46,8 +46,8 @@ struct MapOperationView: View {
         case standard, hybrid, satellite
     }
     
-    // Haptic generator for map interactions
-    private let hapticGenerator = UIImpactFeedbackGenerator(style: .medium)
+    // Haptic generator for map interactions (heavy for stronger feedback)
+    private let hapticGenerator = UIImpactFeedbackGenerator(style: .heavy)
     private let warningHaptic = UINotificationFeedbackGenerator()
 
     var body: some View {
@@ -266,21 +266,18 @@ struct MapOperationView: View {
                 }
             }
             .mapStyle(mapStyle)
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.5)
-                    .onChanged { _ in
-                        // Trigger haptic when long press is first recognized
-                        if isCaseAgent {
-                            hapticGenerator.prepare()
-                            hapticGenerator.impactOccurred()
-                        } else {
-                            warningHaptic.prepare()
-                            warningHaptic.notificationOccurred(.warning)
-                        }
-                    }
-            )
             .gesture(
                 LongPressGesture(minimumDuration: 0.5)
+                    .onChanged { pressing in
+                        if pressing {
+                            // Trigger strong haptic when long press activates
+                            if isCaseAgent {
+                                hapticGenerator.impactOccurred()
+                            } else {
+                                warningHaptic.notificationOccurred(.warning)
+                            }
+                        }
+                    }
                     .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
                     .onEnded { value in
                         guard case .second(true, let drag?) = value else { return }
