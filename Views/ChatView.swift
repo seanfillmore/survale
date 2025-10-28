@@ -40,15 +40,17 @@ struct ChatView: View {
                     ScrollView {
                         LazyVStack(spacing: 12) {
                             ForEach(messages) { message in
+                                let isCurrentUser = message.userID.lowercased() == appState.currentUserID?.uuidString.lowercased()
                                 ChatMessageBubble(
                                     message: message,
-                                    isCurrentUser: message.userID == appState.currentUserID?.uuidString
+                                    isCurrentUser: isCurrentUser
                                 )
                                 .id(message.id)
                             }
                         }
                         .padding()
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     .onChange(of: messages.count) { _, _ in
                         // Auto-scroll to bottom when new message arrives
                         if let lastMessage = messages.last {
@@ -106,12 +108,11 @@ struct ChatView: View {
                     }
                 }
                 
-                TextField("Type a message...", text: $text, axis: .vertical)
+                TextField("Type a message...", text: $text)
                     .textFieldStyle(.plain)
                     .padding(10)
                     .background(Color(.systemGray6))
                     .cornerRadius(20)
-                    .lineLimit(1...5)
                     .focused($textFieldFocused)
                     .onSubmit {
                         if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -229,12 +230,19 @@ struct ChatView: View {
         do {
             try await realtimeService.subscribeToChatMessages(operationId: operationID) { newMessage in
                 Task { @MainActor in
-                    // Check if message already exists (avoid duplicates)
-                    if !messages.contains(where: { $0.id == newMessage.id }) {
-                        messages.append(newMessage)
-                        
-                        // Sort messages by timestamp
-                        messages.sort { $0.createdAt < $1.createdAt }
+                    // Check if this is a reload signal
+                    if newMessage.content == "__RELOAD__" {
+                        print("📨 Realtime: Reloading messages due to new insert")
+                        // Reload all messages from database
+                        await self.loadMessages()
+                    } else {
+                        // Check if message already exists (avoid duplicates)
+                        if !self.messages.contains(where: { $0.id == newMessage.id }) {
+                            self.messages.append(newMessage)
+                            
+                            // Sort messages by timestamp
+                            self.messages.sort { $0.createdAt < $1.createdAt }
+                        }
                     }
                 }
             }
@@ -389,18 +397,19 @@ struct ChatMessageBubble: View {
     @State private var isLoadingMedia = false
     
     var body: some View {
-        HStack {
+        HStack(alignment: .bottom, spacing: 8) {
             if isCurrentUser {
-                Spacer(minLength: 60)
+                Spacer(minLength: 50)
             }
             
-            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 2) {
                 // Sender name (only for other users)
-                if !isCurrentUser {
-                    Text(message.userName ?? "Unknown User")
-                        .font(.caption2)
+                if !isCurrentUser, let userName = message.userName {
+                    Text(userName)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 4)
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 2)
                 }
                 
                 // Message bubble
@@ -412,7 +421,7 @@ struct ChatMessageBubble: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(maxWidth: 250, maxHeight: 300)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
                         } else if isLoadingMedia {
                             ProgressView()
                                 .frame(width: 200, height: 200)
@@ -431,25 +440,39 @@ struct ChatMessageBubble: View {
                     if !message.content.isEmpty {
                         Text(message.content)
                             .font(.body)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(isCurrentUser ? Color.blue : Color(.systemGray5))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    Group {
+                        if isCurrentUser {
+                            // iOS blue bubble for sent messages with tail on right
+                            ChatBubbleShape(tailDirection: .right)
+                                .fill(Color(red: 0.0, green: 0.48, blue: 1.0))
+                        } else {
+                            // Light gray bubble for received messages with tail on left
+                            ChatBubbleShape(tailDirection: .left)
+                                .fill(Color(.systemGray5))
+                        }
+                    }
+                )
                 .foregroundStyle(isCurrentUser ? .white : .primary)
-                .cornerRadius(16)
                 
                 // Timestamp
                 Text(message.createdAt, style: .time)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 1)
             }
             
             if !isCurrentUser {
-                Spacer(minLength: 60)
+                Spacer(minLength: 50)
             }
         }
+        .padding(.horizontal, 4)
         .task {
             if message.mediaType == "photo", let mediaPath = message.mediaPath {
                 await loadMediaImage(path: mediaPath)
@@ -471,6 +494,95 @@ struct ChatMessageBubble: View {
                 self.isLoadingMedia = false
             }
         }
+    }
+}
+
+// MARK: - Chat Bubble Shape with Tail
+
+struct ChatBubbleShape: Shape {
+    enum TailDirection {
+        case left, right
+    }
+
+    let tailDirection: TailDirection
+
+    func path(in rect: CGRect) -> Path {
+        let cornerRadius: CGFloat = 18
+        let tailWidth: CGFloat = 10
+        let tailHeight: CGFloat = 8
+        
+        let path = UIBezierPath()
+        
+        if tailDirection == .left {
+            // Start from top left, going clockwise
+            path.move(to: CGPoint(x: rect.minX + cornerRadius, y: rect.minY))
+            
+            // Top edge to top right corner
+            path.addLine(to: CGPoint(x: rect.maxX - cornerRadius, y: rect.minY))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.maxX, y: rect.minY + cornerRadius),
+                controlPoint: CGPoint(x: rect.maxX, y: rect.minY)
+            )
+            
+            // Right side to bottom right corner
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY),
+                controlPoint: CGPoint(x: rect.maxX, y: rect.maxY)
+            )
+            
+            // Bottom edge to tail start
+            path.addLine(to: CGPoint(x: rect.minX + tailWidth, y: rect.maxY))
+            
+            // Tail on bottom left - pointing down and left
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY + tailHeight))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            
+            // Left side up to top left corner
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + cornerRadius))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.minX + cornerRadius, y: rect.minY),
+                controlPoint: CGPoint(x: rect.minX, y: rect.minY)
+            )
+        } else {
+            // Start from top left, going clockwise
+            path.move(to: CGPoint(x: rect.minX + cornerRadius, y: rect.minY))
+            
+            // Top right corner
+            path.addLine(to: CGPoint(x: rect.maxX - cornerRadius, y: rect.minY))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.maxX, y: rect.minY + cornerRadius),
+                controlPoint: CGPoint(x: rect.maxX, y: rect.minY)
+            )
+            
+            // Right side to bottom right corner
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.maxX, y: rect.maxY),
+                controlPoint: CGPoint(x: rect.maxX, y: rect.maxY)
+            )
+            
+            // Tail on bottom right
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY + tailHeight))
+            path.addLine(to: CGPoint(x: rect.maxX - tailWidth, y: rect.maxY))
+            
+            // Bottom to bottom left corner
+            path.addLine(to: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.minX, y: rect.maxY - cornerRadius),
+                controlPoint: CGPoint(x: rect.minX, y: rect.maxY)
+            )
+            
+            // Left side to top left corner
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + cornerRadius))
+            path.addQuadCurve(
+                to: CGPoint(x: rect.minX + cornerRadius, y: rect.minY),
+                controlPoint: CGPoint(x: rect.minX, y: rect.minY)
+            )
+        }
+        
+        path.close()
+        return Path(path.cgPath)
     }
 }
 

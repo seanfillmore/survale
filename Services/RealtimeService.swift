@@ -187,18 +187,46 @@ final class RealtimeService: ObservableObject {
             await existing.unsubscribe()
         }
         
-        // Create channel (for future use when SDK supports postgres_changes)
+        // Create channel with postgres changes subscription
         let channel = client.channel(channelName)
+        
+        // Subscribe to INSERT events on op_messages table for this operation
+        _ = channel.onPostgresChange(
+            InsertAction.self,
+            schema: "public",
+            table: "op_messages",
+            filter: "operation_id=eq.\(operationId.uuidString)"
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            
+            print("📨 New chat message received via realtime - triggering callback")
+            
+            // Trigger the callback - ChatView will handle fetching new messages
+            Task { @MainActor in
+                // Create a dummy message to signal that new messages are available
+                // ChatView will handle deduplication and proper fetching
+                let dummyMessage = ChatMessage(
+                    id: UUID().uuidString,
+                    operationID: operationId,
+                    userID: "",
+                    content: "__RELOAD__", // Special marker
+                    createdAt: Date(),
+                    userName: nil,
+                    mediaPath: nil,
+                    mediaType: "text"
+                )
+                self.messageReceivedHandler?(dummyMessage)
+            }
+        }
         
         do {
             try await channel.subscribeWithError()
             self.chatChannel = channel
+            print("✅ Chat realtime subscription active for operation: \(operationId)")
         } catch {
             print("❌ Chat channel subscription error: \(error)")
+            throw error
         }
-        
-        // Note: Actual real-time updates will be handled via polling in ChatView
-        print("✅ RealtimeService: Chat channel created (polling-based)")
     }
     
     /// Publish a chat message (now handled by DatabaseService -> database insert -> realtime notification)
