@@ -35,9 +35,6 @@ struct MapOperationView: View {
     @State private var selectedStaging: StagingPoint?
     @State private var selectedMember: User?
     
-    // Haptic feedback state
-    @GestureState private var isLongPressing = false
-    
     struct AssignmentData: Identifiable {
         let id = UUID()
         let coordinate: CLLocationCoordinate2D
@@ -271,22 +268,15 @@ struct MapOperationView: View {
             .mapStyle(mapStyle)
             .gesture(
                 LongPressGesture(minimumDuration: 0.5)
-                    .updating($isLongPressing) { currentState, gestureState, _ in
-                        // Only update once when long press first activates
-                        if currentState && !gestureState {
-                            gestureState = true
-                            // Trigger strong haptic when long press activates
-                            if isCaseAgent {
-                                hapticGenerator.impactOccurred()
-                            } else {
-                                warningHaptic.notificationOccurred(.warning)
-                            }
-                        }
-                    }
                     .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
                     .onEnded { value in
                         guard case .second(true, let drag?) = value else { return }
-                        guard isCaseAgent else {
+                        
+                        // Trigger haptic only when long press succeeds
+                        if isCaseAgent {
+                            hapticGenerator.impactOccurred()
+                        } else {
+                            warningHaptic.notificationOccurred(.warning)
                             print("⚠️ Only case agents can assign locations")
                             return
                         }
