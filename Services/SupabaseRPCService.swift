@@ -1335,6 +1335,31 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     // MARK: - Template Functions
     
+    /// Helper struct for encoding arbitrary JSON values in a Sendable way
+    private struct JSONValue: Encodable, Sendable {
+        let value: Any
+        
+        init(_ value: Any) {
+            self.value = value
+        }
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            
+            if let string = value as? String {
+                try container.encode(string)
+            } else if let int = value as? Int {
+                try container.encode(int)
+            } else if let double = value as? Double {
+                try container.encode(double)
+            } else if let bool = value as? Bool {
+                try container.encode(bool)
+            } else {
+                try container.encodeNil()
+            }
+        }
+    }
+    
     /// Save an operation as a template
     nonisolated func saveOperationAsTemplate(
         name: String,
@@ -1347,8 +1372,8 @@ final class SupabaseRPCService: @unchecked Sendable {
             let p_name: String
             let p_description: String?
             let p_is_public: Bool
-            let p_targets: [[String: AnyCodable]]
-            let p_staging: [[String: AnyCodable]]
+            let p_targets: [[String: JSONValue]]
+            let p_staging: [[String: JSONValue]]
         }
         
         struct Response: Decodable, Sendable {
@@ -1356,47 +1381,47 @@ final class SupabaseRPCService: @unchecked Sendable {
         }
         
         // Convert targets to JSON-compatible format
-        let targetsJson = targets.map { target -> [String: AnyCodable] in
-            var dict: [String: AnyCodable] = [
-                "kind": AnyCodable(target.kind.rawValue)
+        let targetsJson = targets.map { target -> [String: JSONValue] in
+            var dict: [String: JSONValue] = [
+                "kind": JSONValue(target.kind.rawValue)
             ]
             
             switch target.kind {
             case .person:
                 if let firstName = target.personFirstName {
-                    dict["person_first_name"] = AnyCodable(firstName)
+                    dict["person_first_name"] = JSONValue(firstName)
                 }
                 if let lastName = target.personLastName {
-                    dict["person_last_name"] = AnyCodable(lastName)
+                    dict["person_last_name"] = JSONValue(lastName)
                 }
                 if let phone = target.personPhone {
-                    dict["phone"] = AnyCodable(phone)
+                    dict["phone"] = JSONValue(phone)
                 }
             case .vehicle:
                 if let make = target.vehicleMake {
-                    dict["vehicle_make"] = AnyCodable(make)
+                    dict["vehicle_make"] = JSONValue(make)
                 }
                 if let model = target.vehicleModel {
-                    dict["vehicle_model"] = AnyCodable(model)
+                    dict["vehicle_model"] = JSONValue(model)
                 }
                 if let color = target.vehicleColor {
-                    dict["vehicle_color"] = AnyCodable(color)
+                    dict["vehicle_color"] = JSONValue(color)
                 }
                 if let plate = target.vehiclePlate {
-                    dict["license_plate"] = AnyCodable(plate)
+                    dict["license_plate"] = JSONValue(plate)
                 }
             case .location:
                 if let name = target.locationName {
-                    dict["location_name"] = AnyCodable(name)
+                    dict["location_name"] = JSONValue(name)
                 }
                 if let address = target.locationAddress {
-                    dict["location_address"] = AnyCodable(address)
+                    dict["location_address"] = JSONValue(address)
                 }
                 if let lat = target.locationLat {
-                    dict["location_lat"] = AnyCodable(lat)
+                    dict["location_lat"] = JSONValue(lat)
                 }
                 if let lng = target.locationLng {
-                    dict["location_lng"] = AnyCodable(lng)
+                    dict["location_lng"] = JSONValue(lng)
                 }
             }
             
@@ -1404,13 +1429,13 @@ final class SupabaseRPCService: @unchecked Sendable {
         }
         
         // Convert staging to JSON-compatible format
-        let stagingJson = staging.compactMap { stage -> [String: AnyCodable]? in
+        let stagingJson = staging.compactMap { stage -> [String: JSONValue]? in
             guard let lat = stage.lat, let lng = stage.lng else { return nil }
             return [
-                "label": AnyCodable(stage.label),
-                "address": AnyCodable(stage.address),
-                "latitude": AnyCodable(lat),
-                "longitude": AnyCodable(lng)
+                "label": JSONValue(stage.label),
+                "address": JSONValue(stage.address),
+                "latitude": JSONValue(lat),
+                "longitude": JSONValue(lng)
             ]
         }
         
