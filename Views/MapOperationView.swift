@@ -30,6 +30,11 @@ struct MapOperationView: View {
     @State private var assignmentData: AssignmentData?
     @State private var teamMembers: [User] = []
     
+    // Info card state
+    @State private var selectedTarget: OpTarget?
+    @State private var selectedStaging: StagingPoint?
+    @State private var selectedMember: User?
+    
     struct AssignmentData: Identifiable {
         let id = UUID()
         let coordinate: CLLocationCoordinate2D
@@ -103,12 +108,19 @@ struct MapOperationView: View {
                                 latitude: lastLocation.latitude,
                                 longitude: lastLocation.longitude
                             )) {
-                                VehicleMarker(
-                                    vehicleType: memberLocation.vehicleType,
-                                    color: memberLocation.vehicleColor ?? "gray",
-                                    heading: lastLocation.heading,
-                                    isCurrentUser: false
-                                )
+                                Button {
+                                    // Find the full user object for this member
+                                    if let member = teamMembers.first(where: { $0.id == userId }) {
+                                        selectedMember = member
+                                    }
+                                } label: {
+                                    VehicleMarker(
+                                        vehicleType: memberLocation.vehicleType,
+                                        color: memberLocation.vehicleColor ?? "gray",
+                                        heading: lastLocation.heading,
+                                        isCurrentUser: false
+                                    )
+                                }
                             }
                         }
                     }
@@ -130,8 +142,18 @@ struct MapOperationView: View {
                     if isMapReady {
                         ForEach(targets) { target in
                             if let coordinate = target.coordinate {
-                                Marker(target.label, systemImage: "target", coordinate: coordinate)
-                                    .tint(.red)
+                                Annotation(target.label, coordinate: coordinate) {
+                                    Button {
+                                        selectedTarget = target
+                                    } label: {
+                                        Image(systemName: iconForTargetKind(target.kind))
+                                            .font(.title2)
+                                            .foregroundStyle(.white)
+                                            .padding(8)
+                                            .background(.red, in: Circle())
+                                            .shadow(radius: 3)
+                                    }
+                                }
                             }
                         }
                     }
@@ -140,8 +162,18 @@ struct MapOperationView: View {
                     if isMapReady {
                         ForEach(stagingPoints) { staging in
                             if let coordinate = staging.coordinate {
-                                Marker(staging.label, systemImage: "mappin.circle.fill", coordinate: coordinate)
-                                    .tint(.green)
+                                Annotation(staging.label, coordinate: staging.coordinate) {
+                                    Button {
+                                        selectedStaging = staging
+                                    } label: {
+                                        Image(systemName: "mappin.circle.fill")
+                                            .font(.title2)
+                                            .foregroundStyle(.white)
+                                            .padding(8)
+                                            .background(.green, in: Circle())
+                                            .shadow(radius: 3)
+                                    }
+                                }
                             }
                         }
                     }
@@ -283,6 +315,15 @@ struct MapOperationView: View {
                 operationId: data.operationId,
                 teamMembers: data.teamMembers  // Use captured team members from data
             )
+        }
+        .sheet(item: $selectedTarget) { target in
+            TargetInfoSheet(target: target)
+        }
+        .sheet(item: $selectedStaging) { staging in
+            StagingInfoSheet(staging: staging)
+        }
+        .sheet(item: $selectedMember) { member in
+            TeamMemberInfoSheet(member: member, assignmentService: assignmentService, routeService: routeService, operationId: appState.activeOperationID)
         }
         .task {
             // Load cached data immediately (synchronous, instant)
@@ -746,6 +787,16 @@ struct MapOperationView: View {
         }
     }
     
+    // MARK: - Helper Functions
+    
+    private func iconForTargetKind(_ kind: OpTargetKind) -> String {
+        switch kind {
+        case .person: return "person.fill"
+        case .vehicle: return "car.fill"
+        case .location: return "mappin.circle.fill"
+        }
+    }
+    
     // MARK: - Route Calculation
     
     /// Calculate route for current user's active assignment
@@ -854,5 +905,390 @@ extension OpTargetKind {
         case .vehicle: return .orange
         case .location: return .red
         }
+    }
+}
+
+// MARK: - Target Info Sheet
+
+struct TargetInfoSheet: View {
+    let target: OpTarget
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header with icon
+                    HStack(spacing: 16) {
+                        Image(systemName: iconForKind)
+                            .font(.system(size: 50))
+                            .foregroundStyle(colorForKind)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(target.label)
+                                .font(.title2.bold())
+                            Text(kindLabel)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(12)
+                    
+                    // Details based on kind
+                    switch target.kind {
+                    case .person:
+                        if let firstName = target.personFirstName, let lastName = target.personLastName {
+                            DetailRow(label: "Name", value: "\(firstName) \(lastName)")
+                        }
+                        if let phone = target.personPhone {
+                            DetailRow(label: "Phone", value: phone, isLink: true, linkURL: "tel:\(phone.filter { $0.isNumber })")
+                        }
+                        
+                    case .vehicle:
+                        if let make = target.vehicleMake {
+                            DetailRow(label: "Make", value: make)
+                        }
+                        if let model = target.vehicleModel {
+                            DetailRow(label: "Model", value: model)
+                        }
+                        if let color = target.vehicleColor {
+                            DetailRow(label: "Color", value: color)
+                        }
+                        if let plate = target.vehiclePlate {
+                            DetailRow(label: "License Plate", value: plate)
+                        }
+                        
+                    case .location:
+                        if let name = target.locationName {
+                            DetailRow(label: "Location Name", value: name)
+                        }
+                        if let address = target.locationAddress {
+                            DetailRow(label: "Address", value: address)
+                        }
+                    }
+                    
+                    // Location coordinates
+                    if let lat = target.locationLat, let lng = target.locationLng {
+                        DetailRow(label: "Coordinates", value: String(format: "%.6f, %.6f", lat, lng))
+                        
+                        // Navigate button
+                        if let url = URL(string: "maps://?daddr=\(lat),\(lng)") {
+                            Link(destination: url) {
+                                HStack {
+                                    Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
+                                    Text("Navigate Here")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundStyle(.white)
+                                .cornerRadius(10)
+                            }
+                        }
+                    }
+                    
+                    // Notes
+                    if let notes = target.notes, !notes.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Notes")
+                                .font(.headline)
+                            Text(notes)
+                                .font(.body)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(8)
+                        }
+                    }
+                    
+                    // Images
+                    if !target.images.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Photos (\(target.images.count))")
+                                .font(.headline)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(target.images) { image in
+                                        if let uiImage = OpTargetImageManager.shared.getImage(localPath: image.localPath) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 150, height: 150)
+                                                .cornerRadius(8)
+                                                .clipped()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Target Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var iconForKind: String {
+        switch target.kind {
+        case .person: return "person.fill"
+        case .vehicle: return "car.fill"
+        case .location: return "mappin.circle.fill"
+        }
+    }
+    
+    private var kindLabel: String {
+        target.kind.rawValue.capitalized
+    }
+    
+    private var colorForKind: Color {
+        switch target.kind {
+        case .person: return .green
+        case .vehicle: return .orange
+        case .location: return .red
+        }
+    }
+}
+
+// MARK: - Staging Info Sheet
+
+struct StagingInfoSheet: View {
+    let staging: StagingPoint
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header
+                    HStack(spacing: 16) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 50))
+                            .foregroundStyle(.green)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(staging.label)
+                                .font(.title2.bold())
+                            Text("Staging Point")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(12)
+                    
+                    // Address
+                    if !staging.address.isEmpty {
+                        DetailRow(label: "Address", value: staging.address)
+                    }
+                    
+                    // Coordinates
+                    if let lat = staging.lat, let lng = staging.lng {
+                        DetailRow(label: "Coordinates", value: String(format: "%.6f, %.6f", lat, lng))
+                        
+                        // Navigate button
+                        if let url = URL(string: "maps://?daddr=\(lat),\(lng)") {
+                            Link(destination: url) {
+                                HStack {
+                                    Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
+                                    Text("Navigate Here")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.green)
+                                .foregroundStyle(.white)
+                                .cornerRadius(10)
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Staging Point")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Team Member Info Sheet
+
+struct TeamMemberInfoSheet: View {
+    let member: User
+    let assignmentService: AssignmentService
+    let routeService: RouteService
+    let operationId: UUID?
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Header with avatar
+                    HStack(spacing: 16) {
+                        Circle()
+                            .fill(Color.blue.gradient)
+                            .frame(width: 60, height: 60)
+                            .overlay {
+                                Text(initials)
+                                    .font(.title2.bold())
+                                    .foregroundStyle(.white)
+                            }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(member.displayName)
+                                .font(.title2.bold())
+                            if let callsign = member.callsign {
+                                Text(callsign)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(12)
+                    
+                    // Contact info
+                    if let phone = member.phoneNumber, !phone.isEmpty {
+                        DetailRow(label: "Phone", value: phone, isLink: true, linkURL: "tel:\(phone.filter { $0.isNumber })")
+                    }
+                    
+                    DetailRow(label: "Email", value: member.email, isLink: true, linkURL: "mailto:\(member.email)")
+                    
+                    // Vehicle info
+                    DetailRow(label: "Vehicle", value: "\(member.vehicleColor) \(member.vehicleType.displayName)")
+                    
+                    // Assignment info
+                    if let assignment = memberAssignment {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Current Assignment")
+                                .font(.headline)
+                            
+                            VStack(spacing: 8) {
+                                HStack {
+                                    Image(systemName: assignment.status.icon)
+                                        .foregroundStyle(assignment.status.color)
+                                    Text(assignment.status.rawValue.capitalized)
+                                        .font(.subheadline)
+                                    Spacer()
+                                }
+                                
+                                if let label = assignment.label {
+                                    HStack {
+                                        Text("Location:")
+                                            .foregroundStyle(.secondary)
+                                        Text(label)
+                                        Spacer()
+                                    }
+                                    .font(.subheadline)
+                                }
+                                
+                                // ETA if available
+                                if let routeInfo = routeService.getRoute(for: assignment.id) {
+                                    HStack {
+                                        Image(systemName: "clock")
+                                            .foregroundStyle(.blue)
+                                        Text("ETA: \(routeInfo.travelTimeText)")
+                                            .font(.subheadline)
+                                        Spacer()
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(8)
+                        }
+                    } else {
+                        Text("No active assignment")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(8)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Team Member")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var initials: String {
+        if let callsign = member.callsign, !callsign.isEmpty {
+            return String(callsign.prefix(2)).uppercased()
+        }
+        return String(member.email.prefix(2)).uppercased()
+    }
+    
+    private var memberAssignment: AssignedLocation? {
+        assignmentService.assignedLocations.first { $0.assignedToUserId == member.id }
+    }
+}
+
+// MARK: - Detail Row Helper
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+    var isLink: Bool = false
+    var linkURL: String?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            
+            if isLink, let urlString = linkURL, let url = URL(string: urlString) {
+                Link(destination: url) {
+                    HStack {
+                        Text(value)
+                            .font(.body)
+                        Spacer()
+                        Image(systemName: "arrow.up.right.circle.fill")
+                            .foregroundStyle(.blue)
+                    }
+                }
+            } else {
+                Text(value)
+                    .font(.body)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(8)
     }
 }
