@@ -21,12 +21,12 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     // MARK: - Assignment Response Models
     
-    struct AssignmentResponse: Decodable, Sendable {
+    nonisolated struct AssignmentResponse: Decodable, Sendable {
         let assignment_id: String
         let status: String
     }
     
-    struct AssignmentStatusResponse: Decodable, Sendable {
+    nonisolated struct AssignmentStatusResponse: Decodable, Sendable {
         let assignment_id: String
         let status: String
         let updated_at: String
@@ -36,7 +36,7 @@ final class SupabaseRPCService: @unchecked Sendable {
     // MARK: - Image Models
     
     // Shared image item struct for encoding
-    struct EncodableImageItem: Encodable, Sendable {
+    nonisolated struct EncodableImageItem: Encodable, Sendable {
         let id: String
         let storage_kind: String
         let remote_url: String?
@@ -48,7 +48,7 @@ final class SupabaseRPCService: @unchecked Sendable {
         let created_at: String
         let caption: String?
         
-        static func from(_ dict: [String: Any]) -> EncodableImageItem? {
+        nonisolated static func from(_ dict: [String: Any]) -> EncodableImageItem? {
             guard let id = dict["id"] as? String,
                   let storageKind = dict["storage_kind"] as? String,
                   let filename = dict["filename"] as? String,
@@ -69,7 +69,7 @@ final class SupabaseRPCService: @unchecked Sendable {
             )
         }
         
-        static func fromArray(_ dictArray: [[String: Any]]) -> [EncodableImageItem] {
+        nonisolated static func fromArray(_ dictArray: [[String: Any]]) -> [EncodableImageItem] {
             return dictArray.compactMap { from($0) }
         }
     }

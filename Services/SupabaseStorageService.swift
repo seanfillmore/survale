@@ -40,8 +40,8 @@ final class SupabaseStorageService {
             _ = try await client.storage
                 .from(bucketName)
                 .upload(
-                    path: filePath,
-                    file: imageData,
+                    filePath,
+                    data: imageData,
                     options: FileOptions(cacheControl: "3600", upsert: true)
                 )
             
@@ -67,8 +67,8 @@ final class SupabaseStorageService {
             _ = try await client.storage
                 .from(bucket)
                 .upload(
-                    path: path,
-                    file: data,
+                    path,
+                    data: data,
                     options: FileOptions(cacheControl: "3600", upsert: true)
                 )
             

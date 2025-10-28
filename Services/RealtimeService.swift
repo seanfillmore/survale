@@ -85,10 +85,14 @@ final class RealtimeService: ObservableObject {
         
         // Create channel (for future use when SDK supports postgres_changes)
         let channel = client.channel(channelName)
-        await channel.subscribe()
         
-        self.locationChannel = channel
-        self.isConnected = true
+        do {
+            try await channel.subscribeWithError()
+            self.locationChannel = channel
+            self.isConnected = true
+        } catch {
+            print("❌ Location channel subscription error: \(error)")
+        }
         
         // Note: Actual real-time updates will be handled via polling in MapOperationView
         print("✅ RealtimeService: Location channel created (polling-based)")
@@ -185,9 +189,13 @@ final class RealtimeService: ObservableObject {
         
         // Create channel (for future use when SDK supports postgres_changes)
         let channel = client.channel(channelName)
-        await channel.subscribe()
         
-        self.chatChannel = channel
+        do {
+            try await channel.subscribeWithError()
+            self.chatChannel = channel
+        } catch {
+            print("❌ Chat channel subscription error: \(error)")
+        }
         
         // Note: Actual real-time updates will be handled via polling in ChatView
         print("✅ RealtimeService: Chat channel created (polling-based)")
