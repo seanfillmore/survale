@@ -234,17 +234,17 @@ struct EditOperationView: View {
     }
     
     private func saveChanges() async {
-        guard let userId = appState.currentUserID else {
+        guard appState.currentUserID != nil else {
             print("❌ No current user ID")
             return
         }
         
-        guard let teamId = appState.currentUser?.teamId else {
+        guard appState.currentUser?.teamId != nil else {
             print("❌ No team ID")
             return
         }
         
-        guard let agencyId = appState.currentUser?.agencyId else {
+        guard appState.currentUser?.agencyId != nil else {
             print("❌ No agency ID")
             return
         }

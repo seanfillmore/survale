@@ -874,7 +874,7 @@ struct MapOperationView: View {
               let userLocation = loc.lastLocation?.coordinate else {
             // Clear route if no assignment or location
             if let assignment = currentUserAssignment {
-                await routeService.clearRoute(assignmentId: assignment.id)
+                routeService.clearRoute(assignmentId: assignment.id)
             }
             return
         }

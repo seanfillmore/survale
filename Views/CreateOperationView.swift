@@ -1224,7 +1224,7 @@ struct TeamMemberSelector: View {
             print("✅ Loaded \(members.count) team members")
             
             // Filter out current user (they're already the case agent)
-            let currentUserId = await appState.currentUserID
+            let currentUserId = appState.currentUserID
             let filteredMembers = members.filter { $0.id != currentUserId }
             print("   Filtered to \(filteredMembers.count) members (excluding current user)")
             

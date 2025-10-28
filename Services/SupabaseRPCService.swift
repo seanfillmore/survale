@@ -787,7 +787,7 @@ final class SupabaseRPCService: @unchecked Sendable {
                     var target = OpTarget(
                         id: targetId,
                         kind: .person,
-                        personName: "\(person.first_name ?? "") \(person.last_name ?? "")".trimmingCharacters(in: .whitespaces),
+                        personName: "\(person.first_name) \(person.last_name)".trimmingCharacters(in: .whitespaces),
                         phone: person.phone_number
                     )
                     target.images = parseImages(person.images)
@@ -1369,7 +1369,7 @@ final class SupabaseRPCService: @unchecked Sendable {
                 if let lastName = target.personLastName {
                     dict["person_last_name"] = AnyCodable(lastName)
                 }
-                if let phone = target.phone {
+                if let phone = target.personPhone {
                     dict["phone"] = AnyCodable(phone)
                 }
             case .vehicle:
@@ -1382,7 +1382,7 @@ final class SupabaseRPCService: @unchecked Sendable {
                 if let color = target.vehicleColor {
                     dict["vehicle_color"] = AnyCodable(color)
                 }
-                if let plate = target.licensePlate {
+                if let plate = target.vehiclePlate {
                     dict["license_plate"] = AnyCodable(plate)
                 }
             case .location:

@@ -146,7 +146,15 @@ extension OpTarget {
         self.id = id
         self.kind = kind
         self.label = personName ?? "Unknown Person"
-        self.personName = personName
+        // Split name into first/last for storage
+        if let name = personName {
+            let components = name.components(separatedBy: " ")
+            self.personFirstName = components.first
+            self.personLastName = components.count > 1 ? components.dropFirst().joined(separator: " ") : nil
+        } else {
+            self.personFirstName = nil
+            self.personLastName = nil
+        }
         self.personPhone = phone
     }
     
@@ -158,7 +166,7 @@ extension OpTarget {
         self.vehicleMake = vehicleMake
         self.vehicleModel = vehicleModel
         self.vehicleColor = vehicleColor
-        self.vehiclePlate = licensePlate
+        self.vehiclePlate = licensePlate  // Direct stored property
     }
     
     nonisolated init(id: UUID = UUID(), kind: OpTargetKind, locationName: String?, locationAddress: String?) {
