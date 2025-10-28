@@ -276,25 +276,30 @@ struct MapOperationView: View {
                             return
                         }
                         
-                        print("✅ Long press succeeded, triggering haptic")
-                        
-                        // Trigger haptic only when long press succeeds
-                        if isCaseAgent {
-                            let generator = UIImpactFeedbackGenerator(style: .heavy)
-                            generator.prepare()
-                            generator.impactOccurred()
-                            print("📳 Case agent haptic triggered")
-                        } else {
-                            let generator = UINotificationFeedbackGenerator()
-                            generator.prepare()
-                            generator.notificationOccurred(.warning)
-                            print("⚠️ Only case agents can assign locations")
+                        guard let coordinate = proxy.convert(drag.location, from: .local) else {
+                            print("⚠️ Could not convert tap location to coordinate")
                             return
                         }
                         
-                        if let coordinate = proxy.convert(drag.location, from: .local) {
-                            handleMapLongPress(at: coordinate)
+                        print("✅ Long press succeeded at coordinate: \(coordinate)")
+                        
+                        // Check permissions first
+                        if !isCaseAgent {
+                            print("⚠️ User is not case agent, showing warning haptic")
+                            warningHaptic.prepare()
+                            warningHaptic.notificationOccurred(.warning)
+                            return
                         }
+                        
+                        // Trigger haptic IMMEDIATELY and SYNCHRONOUSLY before any other operations
+                        print("📳 Triggering haptic NOW (before sheet)")
+                        hapticGenerator.prepare()
+                        hapticGenerator.impactOccurred()
+                        print("📳 Haptic triggered, now presenting sheet")
+                        
+                        // Present sheet immediately after haptic (synchronous)
+                        handleMapLongPress(at: coordinate)
+                        print("✅ Sheet presentation triggered")
                     }
             )
             .mapControls {
@@ -804,6 +809,10 @@ struct MapOperationView: View {
     }
     
     private func handleViewAppear() {
+        // Prepare haptic generators early for instant response
+        hapticGenerator.prepare()
+        warningHaptic.prepare()
+        
         // Allow view to render first, then load data
         Task {
             // Tiny delay to let tab animation complete
