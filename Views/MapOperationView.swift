@@ -45,6 +45,10 @@ struct MapOperationView: View {
     enum MapStyleType {
         case standard, hybrid, satellite
     }
+    
+    // Haptic generator for map interactions
+    private let hapticGenerator = UIImpactFeedbackGenerator(style: .medium)
+    private let warningHaptic = UINotificationFeedbackGenerator()
 
     var body: some View {
         contentView
@@ -262,6 +266,19 @@ struct MapOperationView: View {
                 }
             }
             .mapStyle(mapStyle)
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.5)
+                    .onChanged { _ in
+                        // Trigger haptic when long press is first recognized
+                        if isCaseAgent {
+                            hapticGenerator.prepare()
+                            hapticGenerator.impactOccurred()
+                        } else {
+                            warningHaptic.prepare()
+                            warningHaptic.notificationOccurred(.warning)
+                        }
+                    }
+            )
             .gesture(
                 LongPressGesture(minimumDuration: 0.5)
                     .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
@@ -269,15 +286,8 @@ struct MapOperationView: View {
                         guard case .second(true, let drag?) = value else { return }
                         guard isCaseAgent else {
                             print("⚠️ Only case agents can assign locations")
-                            // Light haptic for non-case agents (feedback that action isn't available)
-                            let generator = UINotificationFeedbackGenerator()
-                            generator.notificationOccurred(.warning)
                             return
                         }
-                        
-                        // Success haptic for case agents
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
                         
                         if let coordinate = proxy.convert(drag.location, from: .local) {
                             handleMapLongPress(at: coordinate)
