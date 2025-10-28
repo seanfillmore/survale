@@ -572,7 +572,7 @@ struct ActiveOperationDetailView: View {
         defer { isLoading = false }
         
         // Check if user is a member using OperationStore
-        let memberOperationIds = await OperationStore.shared.memberOperationIds
+        let memberOperationIds = OperationStore.shared.memberOperationIds
         let isUserMember = memberOperationIds.contains(operation.id)
         
         await MainActor.run {
@@ -649,7 +649,7 @@ struct ActiveOperationDetailView: View {
         print("🔄 Refreshing operation data...")
         
         // Check membership status
-        let memberOperationIds = await OperationStore.shared.memberOperationIds
+        let memberOperationIds = OperationStore.shared.memberOperationIds
         let isUserMember = memberOperationIds.contains(operation.id)
         
         await MainActor.run {
