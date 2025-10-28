@@ -940,6 +940,16 @@ struct StagingEditor: View {
         latitude = stagingPoint.lat
         longitude = stagingPoint.lng
         
+        // Check if address is empty (from old templates)
+        if stagingPoint.address.trimmingCharacters(in: .whitespaces).isEmpty {
+            print("   ⚠️ Staging point has no address - old template or coordinates-only")
+            // Leave fields empty - user will need to add address manually
+            address = ""
+            city = ""
+            zipCode = ""
+            return
+        }
+        
         // Parse address into components (format: "street, city, zip")
         let components = stagingPoint.address.components(separatedBy: ", ")
         if components.count >= 3 {
