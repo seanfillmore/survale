@@ -270,13 +270,24 @@ struct MapOperationView: View {
                 LongPressGesture(minimumDuration: 0.5)
                     .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
                     .onEnded { value in
-                        guard case .second(true, let drag?) = value else { return }
+                        print("🎯 Long press gesture ended: \(value)")
+                        guard case .second(true, let drag?) = value else {
+                            print("⚠️ Gesture pattern didn't match")
+                            return
+                        }
+                        
+                        print("✅ Long press succeeded, triggering haptic")
                         
                         // Trigger haptic only when long press succeeds
                         if isCaseAgent {
-                            hapticGenerator.impactOccurred()
+                            let generator = UIImpactFeedbackGenerator(style: .heavy)
+                            generator.prepare()
+                            generator.impactOccurred()
+                            print("📳 Case agent haptic triggered")
                         } else {
-                            warningHaptic.notificationOccurred(.warning)
+                            let generator = UINotificationFeedbackGenerator()
+                            generator.prepare()
+                            generator.notificationOccurred(.warning)
                             print("⚠️ Only case agents can assign locations")
                             return
                         }
