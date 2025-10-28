@@ -120,8 +120,10 @@ struct MapOperationView: View {
         
         MapReader { proxy in
             Map(position: $mapPosition, interactionModes: .all) {
-                    // User location (distinct from team members)
-                    if let userLocation = loc.lastLocation {
+                    // User location (distinct from team members, unless hidden)
+                    if let userLocation = loc.lastLocation,
+                       let currentUserId = appState.currentUserID,
+                       !appState.hiddenUserIds.contains(currentUserId) {
                         Annotation("You", coordinate: userLocation.coordinate) {
                             VehicleMarker(
                                 vehicleType: appState.currentUser?.vehicleType ?? .sedan,
@@ -132,9 +134,10 @@ struct MapOperationView: View {
                         }
                     }
                     
-                    // Team member locations
+                    // Team member locations (excluding current user and hidden users)
                     ForEach(Array(realtimeService.memberLocations.keys), id: \.self) { userId in
                         if userId != appState.currentUserID,
+                           !appState.hiddenUserIds.contains(userId), // Filter out hidden users
                            let memberLocation = realtimeService.memberLocations[userId],
                            let lastLocation = memberLocation.lastLocation,
                            memberLocation.isActive {
@@ -159,10 +162,11 @@ struct MapOperationView: View {
                         }
                     }
                     
-                    // Location trails (if enabled)
+                    // Location trails (if enabled, excluding hidden users)
                     if showTrails {
                         ForEach(Array(locationTrails.keys), id: \.self) { userId in
-                            if let trail = locationTrails[userId], trail.count > 1 {
+                            if !appState.hiddenUserIds.contains(userId), // Filter out hidden users
+                               let trail = locationTrails[userId], trail.count > 1 {
                                 MapPolyline(coordinates: trail.map { point in
                                     CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude)
                                 })
@@ -171,11 +175,12 @@ struct MapOperationView: View {
                         }
                     }
                     
-                    // Target locations with status indicators
+                    // Target locations with status indicators (excluding hidden targets)
                     // Only render targets after map is ready (deferred rendering)
                     if isMapReady {
                         ForEach(targets) { target in
-                            if let coordinate = target.coordinate {
+                            if let coordinate = target.coordinate,
+                               !appState.hiddenTargetIds.contains(target.id) { // Filter out hidden targets
                                 Annotation(target.label, coordinate: coordinate) {
                                     Button {
                                         selectedTarget = target
@@ -187,10 +192,11 @@ struct MapOperationView: View {
                         }
                     }
                     
-                    // Staging points (green pins)
+                    // Staging points (green pins, excluding hidden staging points)
                     if isMapReady {
                         ForEach(stagingPoints) { staging in
-                            if let coordinate = staging.coordinate {
+                            if let coordinate = staging.coordinate,
+                               !appState.hiddenStagingIds.contains(staging.id) { // Filter out hidden staging points
                                 Annotation(staging.label, coordinate: coordinate) {
                                     Button {
                                         selectedStaging = staging
@@ -515,22 +521,24 @@ struct MapOperationView: View {
     private func zoomToTargets() {
         var coordinates: [CLLocationCoordinate2D] = []
         
-        // Add all target coordinates
+        // Add all visible target coordinates (excluding hidden targets)
         for target in targets {
-            if let coord = target.coordinate {
+            if let coord = target.coordinate,
+               !appState.hiddenTargetIds.contains(target.id) { // Filter out hidden targets
                 coordinates.append(coord)
             }
         }
         
-        // Add all staging point coordinates
+        // Add all visible staging point coordinates (excluding hidden staging points)
         for staging in stagingPoints {
-            if let coord = staging.coordinate {
+            if let coord = staging.coordinate,
+               !appState.hiddenStagingIds.contains(staging.id) { // Filter out hidden staging points
                 coordinates.append(coord)
             }
         }
         
         guard !coordinates.isEmpty else {
-            print("⚠️ No targets or staging points to zoom to")
+            print("⚠️ No visible targets or staging points to zoom to")
             return
         }
         
@@ -541,20 +549,23 @@ struct MapOperationView: View {
             mapPosition = .region(region)
         }
         
-        print("🎯 Zoomed to \(coordinates.count) target location(s)")
+        print("🎯 Zoomed to \(coordinates.count) visible target location(s)")
     }
     
     private func zoomToTeamMembers() {
         var coordinates: [CLLocationCoordinate2D] = []
         
-        // Add current user location
-        if let userLocation = loc.lastLocation {
+        // Add current user location (if not hidden)
+        if let userLocation = loc.lastLocation,
+           let currentUserId = appState.currentUserID,
+           !appState.hiddenUserIds.contains(currentUserId) {
             coordinates.append(userLocation.coordinate)
         }
         
-        // Add all team member locations
+        // Add all visible team member locations (excluding hidden users)
         for (userId, memberLocation) in realtimeService.memberLocations {
             if userId != appState.currentUserID,
+               !appState.hiddenUserIds.contains(userId), // Filter out hidden users
                let lastLocation = memberLocation.lastLocation,
                memberLocation.isActive {
                 coordinates.append(CLLocationCoordinate2D(
@@ -565,7 +576,7 @@ struct MapOperationView: View {
         }
         
         guard !coordinates.isEmpty else {
-            print("⚠️ No team members to zoom to")
+            print("⚠️ No visible team members to zoom to")
             return
         }
         
@@ -576,7 +587,7 @@ struct MapOperationView: View {
             mapPosition = .region(region)
         }
         
-        print("👥 Zoomed to \(coordinates.count) team member(s)")
+        print("👥 Zoomed to \(coordinates.count) visible team member(s)")
     }
     
     private func calculateRegion(for coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion {

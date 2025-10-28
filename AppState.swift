@@ -42,6 +42,17 @@ final class AppState: ObservableObject {
     }
     @Published var activeOperation: Operation?
     
+    // MARK: - Map Visibility
+    
+    /// Set of user IDs that are hidden from the map
+    @Published var hiddenUserIds: Set<UUID> = []
+    
+    /// Set of target IDs that are hidden from the map
+    @Published var hiddenTargetIds: Set<UUID> = []
+    
+    /// Set of staging point IDs that are hidden from the map
+    @Published var hiddenStagingIds: Set<UUID> = []
+    
     // MARK: - Permissions
     
     @Published var locationPermissionGranted = false
