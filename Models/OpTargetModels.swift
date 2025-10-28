@@ -47,7 +47,7 @@ struct OpTargetImage: Identifiable, Equatable, Codable, Hashable, Sendable {
     // Small cached thumb for fast grids (optional)
     var thumbLocalPath: String?
 
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         storageKind: StorageKind,
         localPath: String?,
@@ -136,13 +136,13 @@ struct OpTarget: Identifiable, Equatable, Codable, Sendable {
 }
 
 extension OpTarget {
-    var coordinate: CLLocationCoordinate2D? {
+    nonisolated var coordinate: CLLocationCoordinate2D? {
         guard let lat = locationLat, let lng = locationLng else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lng)
     }
     
     // Convenience initializers
-    init(id: UUID = UUID(), kind: OpTargetKind, personName: String?, phone: String?) {
+    nonisolated init(id: UUID = UUID(), kind: OpTargetKind, personName: String?, phone: String?) {
         self.id = id
         self.kind = kind
         self.label = personName ?? "Unknown Person"
@@ -150,7 +150,7 @@ extension OpTarget {
         self.personPhone = phone
     }
     
-    init(id: UUID = UUID(), kind: OpTargetKind, vehicleMake: String?, vehicleModel: String?, vehicleColor: String?, licensePlate: String?) {
+    nonisolated init(id: UUID = UUID(), kind: OpTargetKind, vehicleMake: String?, vehicleModel: String?, vehicleColor: String?, licensePlate: String?) {
         self.id = id
         self.kind = kind
         let desc = [vehicleColor, vehicleMake, vehicleModel].compactMap { $0 }.joined(separator: " ")
@@ -161,7 +161,7 @@ extension OpTarget {
         self.vehiclePlate = licensePlate
     }
     
-    init(id: UUID = UUID(), kind: OpTargetKind, locationName: String?, locationAddress: String?) {
+    nonisolated init(id: UUID = UUID(), kind: OpTargetKind, locationName: String?, locationAddress: String?) {
         self.id = id
         self.kind = kind
         self.label = locationName ?? locationAddress ?? "Unknown Location"

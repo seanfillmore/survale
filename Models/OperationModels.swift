@@ -18,7 +18,7 @@ struct StagingPoint: Identifiable, Codable, Equatable, Sendable {
     var lat: Double?
     var lng: Double?
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         label: String,
         address: String,
@@ -32,7 +32,7 @@ struct StagingPoint: Identifiable, Codable, Equatable, Sendable {
         self.lng = lng
     }
     
-    var coordinate: CLLocationCoordinate2D? {
+    nonisolated var coordinate: CLLocationCoordinate2D? {
         guard let lat = lat, let lng = lng else { return nil }
         return CLLocationCoordinate2D(latitude: lat, longitude: lng)
     }

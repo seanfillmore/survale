@@ -59,7 +59,7 @@ struct User: Identifiable, Codable, Equatable, Sendable {
         return "\(first) \(last)"
     }
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         email: String,
         teamId: UUID,
@@ -178,7 +178,7 @@ struct Operation: Identifiable, Equatable, Sendable {
     var targets: [OpTarget]
     var staging: [StagingPoint]
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         name: String,
         incidentNumber: String? = nil,
@@ -293,7 +293,7 @@ struct OperationInvite: Identifiable, Codable, Equatable, Sendable {
     var expiresAt: Date
     var respondedAt: Date?
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         operationId: UUID,
         inviterUserId: UUID,
@@ -514,7 +514,7 @@ struct OperationTemplate: Identifiable, Codable, Equatable {
     var targets: [OpTarget]
     var staging: [StagingPoint]
     
-    init(
+    nonisolated init(
         id: UUID = UUID(),
         name: String,
         description: String? = nil,
