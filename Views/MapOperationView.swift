@@ -269,8 +269,16 @@ struct MapOperationView: View {
                         guard case .second(true, let drag?) = value else { return }
                         guard isCaseAgent else {
                             print("⚠️ Only case agents can assign locations")
+                            // Light haptic for non-case agents (feedback that action isn't available)
+                            let generator = UINotificationFeedbackGenerator()
+                            generator.notificationOccurred(.warning)
                             return
                         }
+                        
+                        // Success haptic for case agents
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        
                         if let coordinate = proxy.convert(drag.location, from: .local) {
                             handleMapLongPress(at: coordinate)
                         }
