@@ -1001,38 +1001,38 @@ struct TargetInfoSheet: View {
                     switch target.kind {
                     case .person:
                         if let firstName = target.personFirstName, let lastName = target.personLastName {
-                            DetailRow(label: "Name", value: "\(firstName) \(lastName)")
+                            InfoDetailRow(label: "Name", value: "\(firstName) \(lastName)")
                         }
                         if let phone = target.personPhone {
-                            DetailRow(label: "Phone", value: phone, isLink: true, linkURL: "tel:\(phone.filter { $0.isNumber })")
+                            InfoDetailRow(label: "Phone", value: phone, isLink: true, linkURL: "tel:\(phone.filter { $0.isNumber })")
                         }
                         
                     case .vehicle:
                         if let make = target.vehicleMake {
-                            DetailRow(label: "Make", value: make)
+                            InfoDetailRow(label: "Make", value: make)
                         }
                         if let model = target.vehicleModel {
-                            DetailRow(label: "Model", value: model)
+                            InfoDetailRow(label: "Model", value: model)
                         }
                         if let color = target.vehicleColor {
-                            DetailRow(label: "Color", value: color)
+                            InfoDetailRow(label: "Color", value: color)
                         }
                         if let plate = target.vehiclePlate {
-                            DetailRow(label: "License Plate", value: plate)
+                            InfoDetailRow(label: "License Plate", value: plate)
                         }
                         
                     case .location:
                         if let name = target.locationName {
-                            DetailRow(label: "Location Name", value: name)
+                            InfoDetailRow(label: "Location Name", value: name)
                         }
                         if let address = target.locationAddress {
-                            DetailRow(label: "Address", value: address)
+                            InfoDetailRow(label: "Address", value: address)
                         }
                     }
                     
                     // Location coordinates
                     if let lat = target.locationLat, let lng = target.locationLng {
-                        DetailRow(label: "Coordinates", value: String(format: "%.6f, %.6f", lat, lng))
+                        InfoDetailRow(label: "Coordinates", value: String(format: "%.6f, %.6f", lat, lng))
                         
                         // Navigate button
                         if let url = URL(string: "maps://?daddr=\(lat),\(lng)") {
@@ -1153,12 +1153,12 @@ struct StagingInfoSheet: View {
                     
                     // Address
                     if !staging.address.isEmpty {
-                        DetailRow(label: "Address", value: staging.address)
+                        InfoDetailRow(label: "Address", value: staging.address)
                     }
                     
                     // Coordinates
                     if let lat = staging.lat, let lng = staging.lng {
-                        DetailRow(label: "Coordinates", value: String(format: "%.6f, %.6f", lat, lng))
+                        InfoDetailRow(label: "Coordinates", value: String(format: "%.6f, %.6f", lat, lng))
                         
                         // Navigate button
                         if let url = URL(string: "maps://?daddr=\(lat),\(lng)") {
@@ -1232,13 +1232,13 @@ struct TeamMemberInfoSheet: View {
                     
                     // Contact info
                     if let phone = member.phoneNumber, !phone.isEmpty {
-                        DetailRow(label: "Phone", value: phone, isLink: true, linkURL: "tel:\(phone.filter { $0.isNumber })")
+                        InfoDetailRow(label: "Phone", value: phone, isLink: true, linkURL: "tel:\(phone.filter { $0.isNumber })")
                     }
                     
-                    DetailRow(label: "Email", value: member.email, isLink: true, linkURL: "mailto:\(member.email)")
+                    InfoDetailRow(label: "Email", value: member.email, isLink: true, linkURL: "mailto:\(member.email)")
                     
                     // Vehicle info
-                    DetailRow(label: "Vehicle", value: "\(member.vehicleColor) \(member.vehicleType.displayName)")
+                    InfoDetailRow(label: "Vehicle", value: "\(member.vehicleColor) \(member.vehicleType.displayName)")
                     
                     // Assignment info
                     if let assignment = memberAssignment {
@@ -1316,9 +1316,9 @@ struct TeamMemberInfoSheet: View {
     }
 }
 
-// MARK: - Detail Row Helper
+// MARK: - Info Detail Row Helper
 
-struct DetailRow: View {
+struct InfoDetailRow: View {
     let label: String
     let value: String
     var isLink: Bool = false
