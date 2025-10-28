@@ -834,6 +834,11 @@ struct JoinRequestsSheet: View {
 
 struct TargetDetailCard: View {
     let target: OpTarget
+    @EnvironmentObject var appState: AppState
+    
+    private var isHidden: Bool {
+        appState.hiddenTargetIds.contains(target.id)
+    }
     
     var body: some View {
         HStack(spacing: 12) {
@@ -866,6 +871,16 @@ struct TargetDetailCard: View {
             Spacer()
             
             VStack(spacing: 6) {
+                // Eye icon toggle for map visibility
+                Button {
+                    toggleVisibility()
+                } label: {
+                    Image(systemName: isHidden ? "eye.slash" : "eye")
+                        .font(.title3)
+                        .foregroundStyle(isHidden ? Color.secondary : Color.blue)
+                }
+                .buttonStyle(.plain)
+                
                 if !target.images.isEmpty {
                     HStack(spacing: 4) {
                         Image(systemName: "photo.on.rectangle.angled")
@@ -889,6 +904,14 @@ struct TargetDetailCard: View {
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
+    }
+    
+    private func toggleVisibility() {
+        if isHidden {
+            appState.hiddenTargetIds.remove(target.id)
+        } else {
+            appState.hiddenTargetIds.insert(target.id)
+        }
     }
     
     private var targetIcon: String {
@@ -942,6 +965,11 @@ struct TargetDetailCard: View {
 
 struct StagingDetailCard: View {
     let staging: StagingPoint
+    @EnvironmentObject var appState: AppState
+    
+    private var isHidden: Bool {
+        appState.hiddenStagingIds.contains(staging.id)
+    }
     
     var body: some View {
         HStack(spacing: 12) {
@@ -978,14 +1006,34 @@ struct StagingDetailCard: View {
             
             Spacer()
             
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            VStack(spacing: 6) {
+                // Eye icon toggle for map visibility
+                Button {
+                    toggleVisibility()
+                } label: {
+                    Image(systemName: isHidden ? "eye.slash" : "eye")
+                        .font(.title3)
+                        .foregroundStyle(isHidden ? Color.secondary : Color.blue)
+                }
+                .buttonStyle(.plain)
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
+    }
+    
+    private func toggleVisibility() {
+        if isHidden {
+            appState.hiddenStagingIds.remove(staging.id)
+        } else {
+            appState.hiddenStagingIds.insert(staging.id)
+        }
     }
 }
 
@@ -1333,6 +1381,11 @@ struct MemberRow: View {
     let member: User
     let isCaseAgent: Bool
     let isCurrentUser: Bool
+    @EnvironmentObject var appState: AppState
+    
+    private var isHidden: Bool {
+        appState.hiddenUserIds.contains(member.id)
+    }
     
     private var initials: String {
         // Try callsign first, then email
@@ -1427,11 +1480,29 @@ struct MemberRow: View {
             }
             
             Spacer()
+            
+            // Eye icon toggle for map visibility
+            Button {
+                toggleVisibility()
+            } label: {
+                Image(systemName: isHidden ? "eye.slash" : "eye")
+                    .font(.title3)
+                    .foregroundStyle(isHidden ? Color.secondary : Color.blue)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+    }
+    
+    private func toggleVisibility() {
+        if isHidden {
+            appState.hiddenUserIds.remove(member.id)
+        } else {
+            appState.hiddenUserIds.insert(member.id)
+        }
     }
 }
 
