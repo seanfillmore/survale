@@ -34,41 +34,83 @@ struct ActiveOperationDetailView: View {
     @State private var showingLeaveConfirm = false
     @State private var operationMembers: [User] = []
     @State private var showingCloneOperation = false
+    @State private var selectedMember: User?
+    @State private var showingSaveAsTemplate = false
     
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Header
-                VStack(spacing: 12) {
-                    Image(systemName: operationIcon)
-                        .font(.system(size: 50))
-                        .foregroundStyle(operationColor.gradient)
-                    
-                    Text(operation.name)
-                        .font(.title.bold())
-                        .multilineTextAlignment(.center)
-                    
-                    if let incidentNumber = operation.incidentNumber {
-                        Text("Incident / Case Number: \(incidentNumber)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                // Enhanced Header with Summary Card
+                VStack(spacing: 16) {
+                    // Top row: Icon + Name + Status Badge
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: operationIcon)
+                            .font(.system(size: 40))
+                            .foregroundStyle(operationColor.gradient)
+                            .frame(width: 50, height: 50)
+                            .background(operationColor.opacity(0.1))
+                            .clipShape(Circle())
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(operation.name)
+                                .font(.title2.bold())
+                                .multilineTextAlignment(.leading)
+                            
+                            if let incidentNumber = operation.incidentNumber {
+                                Text("Incident #\(incidentNumber)")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        // Status badge
+                        VStack(spacing: 2) {
+                            Circle()
+                                .fill(statusColor)
+                                .frame(width: 10, height: 10)
+                            Text(statusText)
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(statusColor)
+                        }
                     }
                     
-                    // Status badge
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(statusColor)
-                            .frame(width: 8, height: 8)
-                        Text(statusText)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(statusColor)
+                    // Quick Statistics Row
+                    HStack(spacing: 0) {
+                        StatCard(icon: "person.3.fill", value: "\(operationMembers.count)", label: "Members", color: .blue)
+                        
+                        Divider()
+                            .frame(height: 40)
+                        
+                        StatCard(icon: "target", value: "\(targets.count)", label: "Targets", color: .orange)
+                        
+                        Divider()
+                            .frame(height: 40)
+                        
+                        StatCard(icon: "mappin.circle.fill", value: "\(staging.count)", label: "Staging", color: .green)
+                        
+                        Divider()
+                            .frame(height: 40)
+                        
+                        StatCard(icon: "clock.fill", value: durationText, label: "Duration", color: .purple)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(statusColor.opacity(0.15))
+                    .padding(.vertical, 12)
+                    .background(Color(.secondarySystemGroupedBackground))
                     .cornerRadius(12)
                 }
                 .padding()
+                .background(
+                    LinearGradient(
+                        colors: [operationColor.opacity(0.08), operationColor.opacity(0.02)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(16)
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                .padding(.horizontal)
+                .padding(.top, 8)
                 
                 // Quick actions
                 if isYourActiveOperation && isMember {
@@ -151,6 +193,39 @@ struct ActiveOperationDetailView: View {
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal)
+                }
+                
+                // Team Members Section
+                if isMember && !operationMembers.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "person.3.fill")
+                                .foregroundStyle(.blue)
+                            Text("Team Members")
+                                .font(.title2.bold())
+                            Spacer()
+                            Text("\(operationMembers.count)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal)
+                        
+                        VStack(spacing: 8) {
+                            ForEach(operationMembers) { member in
+                                Button {
+                                    selectedMember = member
+                                } label: {
+                                    MemberRow(
+                                        member: member,
+                                        isCaseAgent: member.id == operation.createdByUserId,
+                                        isCurrentUser: member.id == appState.currentUserID
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal)
+                            }
+                        }
+                    }
                 }
                 
                 // Targets Section
@@ -296,29 +371,55 @@ struct ActiveOperationDetailView: View {
                     }
                 }
                 
-                // Clone Operation button (for ended operations)
-                if operation.state == .ended && isCaseAgent {
+                // Clone Operation and Save as Template buttons
+                if isCaseAgent {
                     VStack(spacing: 12) {
                         Divider()
                             .padding(.vertical)
                         
+                        // Clone Operation (for ended operations only)
+                        if operation.state == .ended {
+                            Button {
+                                showingCloneOperation = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "doc.on.doc")
+                                    Text("Clone Operation")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundStyle(.blue)
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
+                            
+                            Text("Create a new operation with the same targets and locations")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        
+                        // Save as Template (for all operations)
                         Button {
-                            showingCloneOperation = true
+                            showingSaveAsTemplate = true
                         } label: {
                             HStack {
-                                Image(systemName: "doc.on.doc")
-                                Text("Clone Operation")
+                                Image(systemName: "square.and.arrow.down")
+                                Text("Save as Template")
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundStyle(.blue)
+                            .background(Color.purple.opacity(0.1))
+                            .foregroundStyle(.purple)
                             .cornerRadius(12)
                         }
                         .padding(.horizontal)
                         
-                        Text("Create a new operation with the same targets and locations")
+                        Text("Save this configuration as a reusable template")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -356,6 +457,12 @@ struct ActiveOperationDetailView: View {
                 clonedTargets: targets,
                 clonedStaging: staging
             )
+        }
+        .sheet(isPresented: $showingSaveAsTemplate) {
+            SaveAsTemplateView(operation: operation, targets: targets, staging: staging)
+        }
+        .sheet(item: $selectedMember) { member in
+            MemberDetailView(member: member, isCaseAgent: member.id == operation.createdByUserId)
         }
         .alert("Leave Operation", isPresented: $showingLeaveConfirm) {
             Button("Cancel", role: .cancel) { }
@@ -439,6 +546,22 @@ struct ActiveOperationDetailView: View {
             return .green
         } else {
             return .blue
+        }
+    }
+    
+    private var durationText: String {
+        let now = Date()
+        let duration = now.timeIntervalSince(operation.createdAt)
+        let hours = Int(duration / 3600)
+        let minutes = Int((duration.truncatingRemainder(dividingBy: 3600)) / 60)
+        
+        if hours > 24 {
+            let days = hours / 24
+            return "\(days)d"
+        } else if hours > 0 {
+            return "\(hours)h"
+        } else {
+            return "\(minutes)m"
         }
     }
     
@@ -713,48 +836,59 @@ struct TargetDetailCard: View {
     let target: OpTarget
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: targetIcon)
-                    .foregroundStyle(.blue)
-                    .frame(width: 30)
+        HStack(spacing: 12) {
+            // Icon with colored background
+            Image(systemName: targetIcon)
+                .font(.title3)
+                .foregroundStyle(.white)
+                .frame(width: 50, height: 50)
+                .background(targetColor.gradient)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(target.label)
+                    .font(.headline)
+                    .lineLimit(1)
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(target.label)
-                        .font(.headline)
-                    
-                    Text(targetSubtitle)
-                        .font(.caption)
+                Text(targetSubtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                
+                if let notes = target.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 8) {
-                    if !target.images.isEmpty {
-                        Image(systemName: "photo.on.rectangle.angled")
-                            .foregroundStyle(.secondary)
-                        Text("\(target.images.count)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .lineLimit(2)
                 }
             }
             
-            if let notes = target.notes, !notes.isEmpty {
-                Text(notes)
+            Spacer()
+            
+            VStack(spacing: 6) {
+                if !target.images.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.caption)
+                        Text("\(target.images.count)")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                }
+                
+                Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 30)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
     }
     
     private var targetIcon: String {
@@ -762,6 +896,14 @@ struct TargetDetailCard: View {
         case .person: return "person.fill"
         case .vehicle: return "car.fill"
         case .location: return "mappin.circle.fill"
+        }
+    }
+    
+    private var targetColor: Color {
+        switch target.kind {
+        case .person: return .blue
+        case .vehicle: return .orange
+        case .location: return .purple
         }
     }
     
@@ -802,25 +944,35 @@ struct StagingDetailCard: View {
     let staging: StagingPoint
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            // Icon with colored background
             Image(systemName: "mappin.circle.fill")
-                .foregroundStyle(.green)
-                .frame(width: 30)
+                .font(.title3)
+                .foregroundStyle(.white)
+                .frame(width: 50, height: 50)
+                .background(Color.green.gradient)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(staging.label)
                     .font(.headline)
+                    .lineLimit(1)
                 
                 if !staging.address.isEmpty {
                     Text(staging.address)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
                 
                 if let lat = staging.lat, let lng = staging.lng {
-                    Text("Coordinates: \(lat, specifier: "%.6f"), \(lng, specifier: "%.6f")")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Image(systemName: "location.fill")
+                            .font(.caption2)
+                        Text("\(lat, specifier: "%.4f"), \(lng, specifier: "%.4f")")
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.secondary)
                 }
             }
             
@@ -833,6 +985,7 @@ struct StagingDetailCard: View {
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
+        .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
     }
 }
 
@@ -1147,4 +1300,384 @@ struct ImageThumbnailPreview: View {
         }
     }
 }
+
+// MARK: - Stat Card Component
+
+struct StatCard: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color.gradient)
+            
+            Text(value)
+                .font(.title2.bold())
+                .foregroundStyle(.primary)
+            
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Member Row Component
+
+struct MemberRow: View {
+    let member: User
+    let isCaseAgent: Bool
+    let isCurrentUser: Bool
+    
+    private var initials: String {
+        // Try callsign first, then email
+        if let callsign = member.callsign, !callsign.isEmpty {
+            return String(callsign.prefix(2)).uppercased()
+        } else {
+            // Use first 2 characters of email
+            let emailPrefix = member.email.prefix(2)
+            return String(emailPrefix).uppercased()
+        }
+    }
+    
+    private var displayName: String {
+        if let callsign = member.callsign, !callsign.isEmpty {
+            return callsign
+        } else {
+            return member.email
+        }
+    }
+    
+    private var vehicleInfo: String {
+        // vehicleType is a non-optional enum
+        let typeDisplay = member.vehicleType.displayName
+        
+        // Convert hex color to readable name (simplified)
+        let colorName = hexToColorName(member.vehicleColor)
+        
+        return "\(typeDisplay) • \(colorName)"
+    }
+    
+    private func hexToColorName(_ hex: String) -> String {
+        // Simple color name mapping for common colors
+        let lowercaseHex = hex.lowercased().replacingOccurrences(of: "#", with: "")
+        
+        switch lowercaseHex {
+        case "000000", "0d0d0d": return "Black"
+        case "ffffff", "f8f8f8": return "White"
+        case "c0c0c0", "d3d3d3": return "Silver"
+        case "808080", "696969": return "Gray"
+        case "ff0000", "dc143c": return "Red"
+        case "0000ff", "0000cd": return "Blue"
+        case "00ff00", "32cd32": return "Green"
+        case "ffff00", "ffd700": return "Yellow"
+        case "ffa500", "ff8c00": return "Orange"
+        case "800080", "8b008b": return "Purple"
+        case "a52a2a", "8b4513": return "Brown"
+        case "ffc0cb", "ffb6c1": return "Pink"
+        default: return "Custom"
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Avatar circle with initials
+            Circle()
+                .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Text(initials)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                )
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(displayName)
+                        .font(.subheadline.weight(.medium))
+                    
+                    if isCaseAgent {
+                        Image(systemName: "star.fill")
+                            .font(.caption)
+                            .foregroundStyle(.yellow)
+                    }
+                    
+                    if isCurrentUser {
+                        Text("(You)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                HStack(spacing: 8) {
+                    // Vehicle color dot
+                    Circle()
+                        .fill(Color(hex: member.vehicleColor) ?? .gray)
+                        .frame(width: 10, height: 10)
+                    
+                    Text(vehicleInfo)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Member Detail View
+
+struct MemberDetailView: View {
+    let member: User
+    let isCaseAgent: Bool
+    @Environment(\.dismiss) private var dismiss
+    
+    private var displayName: String {
+        if let fullName = member.fullName {
+            return fullName
+        } else if let callsign = member.callsign, !callsign.isEmpty {
+            return callsign
+        } else {
+            return member.email
+        }
+    }
+    
+    private var initials: String {
+        if let callsign = member.callsign, !callsign.isEmpty {
+            return String(callsign.prefix(2)).uppercased()
+        } else if let first = member.firstName, let last = member.lastName {
+            return "\(first.prefix(1))\(last.prefix(1))".uppercased()
+        } else {
+            return String(member.email.prefix(2)).uppercased()
+        }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header with avatar
+                    VStack(spacing: 16) {
+                        Circle()
+                            .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 100, height: 100)
+                            .overlay(
+                                Text(initials)
+                                    .font(.system(size: 40, weight: .bold))
+                                    .foregroundStyle(.white)
+                            )
+                            .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                        
+                        VStack(spacing: 4) {
+                            HStack(spacing: 8) {
+                                Text(displayName)
+                                    .font(.title2.bold())
+                                
+                                if isCaseAgent {
+                                    Image(systemName: "star.fill")
+                                        .font(.headline)
+                                        .foregroundStyle(.yellow)
+                                }
+                            }
+                            
+                            if isCaseAgent {
+                                Text("Case Agent")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 4)
+                                    .background(Color.yellow.opacity(0.2))
+                                    .cornerRadius(8)
+                            }
+                        }
+                    }
+                    .padding(.top, 20)
+                    
+                    // Contact Information
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Phone Number (if available)
+                        if let phone = member.phoneNumber, !phone.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("Phone Number", systemImage: "phone.fill")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.secondary)
+                                
+                                Link(destination: URL(string: "tel:\(phone.filter { $0.isNumber })")!) {
+                                    HStack {
+                                        Text(phone)
+                                            .font(.body)
+                                            .foregroundStyle(.primary)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "phone.circle.fill")
+                                            .font(.title2)
+                                            .foregroundStyle(.green)
+                                    }
+                                    .padding()
+                                    .background(Color(.secondarySystemGroupedBackground))
+                                    .cornerRadius(12)
+                                }
+                            }
+                        }
+                        
+                        // Email
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Email", systemImage: "envelope.fill")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                            
+                            Link(destination: URL(string: "mailto:\(member.email)")!) {
+                                HStack {
+                                    Text(member.email)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "envelope.circle.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.blue)
+                                }
+                                .padding()
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(12)
+                            }
+                        }
+                        
+                        // Callsign (if different from name)
+                        if let callsign = member.callsign, !callsign.isEmpty, member.fullName != nil {
+                            DetailRow(icon: "star.fill", label: "Callsign", value: callsign)
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Vehicle Information
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Image(systemName: "car.fill")
+                                .foregroundStyle(.orange)
+                            Text("Vehicle Information")
+                                .font(.headline)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Type")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 8) {
+                                    Image(systemName: member.vehicleType.iconName)
+                                        .foregroundStyle(.orange)
+                                    Text(member.vehicleType.displayName)
+                                        .font(.body.weight(.medium))
+                                }
+                            }
+                            
+                            Divider()
+                            
+                            HStack {
+                                Text("Color")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                
+                                Spacer()
+                                
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color(hex: member.vehicleColor) ?? .gray)
+                                        .frame(width: 20, height: 20)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(Color(.systemGray3), lineWidth: 1)
+                                        )
+                                    
+                                    Text(hexToColorName(member.vehicleColor))
+                                        .font(.body.weight(.medium))
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+            .navigationTitle("Team Member")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func hexToColorName(_ hex: String) -> String {
+        let lowercaseHex = hex.lowercased().replacingOccurrences(of: "#", with: "")
+        
+        switch lowercaseHex {
+        case "000000", "0d0d0d": return "Black"
+        case "ffffff", "f8f8f8": return "White"
+        case "c0c0c0", "d3d3d3": return "Silver"
+        case "808080", "696969": return "Gray"
+        case "ff0000", "dc143c": return "Red"
+        case "0000ff", "0000cd": return "Blue"
+        case "00ff00", "32cd32": return "Green"
+        case "ffff00", "ffd700": return "Yellow"
+        case "ffa500", "ff8c00": return "Orange"
+        case "800080", "8b008b": return "Purple"
+        case "a52a2a", "8b4513": return "Brown"
+        case "ffc0cb", "ffb6c1": return "Pink"
+        default: return "Custom"
+        }
+    }
+}
+
+// MARK: - Detail Row Helper
+
+struct DetailRow: View {
+    let icon: String
+    let label: String
+    let value: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(label, systemImage: icon)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+            
+            Text(value)
+                .font(.body)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.secondarySystemGroupedBackground))
+                .cornerRadius(12)
+        }
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Color Extension
+// Note: Color(hex:) extension is defined in AssignLocationSheet.swift
 

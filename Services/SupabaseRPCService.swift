@@ -78,10 +78,11 @@ final class SupabaseRPCService: @unchecked Sendable {
     
     /// Create a new operation (draft state)
     /// Returns the operation ID
-    nonisolated func createOperation(name: String, incidentNumber: String?) async throws -> UUID {
+    nonisolated func createOperation(name: String, incidentNumber: String?, isDraft: Bool = false) async throws -> UUID {
         struct CreateOperationParams: Encodable, Sendable {
-            let name: String
-            let incident_number: String?
+            let p_name: String
+            let p_incident_number: String?
+            let p_is_draft: Bool
         }
         
         struct CreateOperationResponse: Decodable, Sendable {
@@ -89,8 +90,9 @@ final class SupabaseRPCService: @unchecked Sendable {
         }
         
         let params = CreateOperationParams(
-            name: name,
-            incident_number: incidentNumber
+            p_name: name,
+            p_incident_number: incidentNumber,
+            p_is_draft: isDraft
         )
         
         let response: CreateOperationResponse = try await client
@@ -923,8 +925,11 @@ final class SupabaseRPCService: @unchecked Sendable {
         struct UserRecord: Decodable, Sendable {
             let id: String
             let email: String?
+            let first_name: String?
+            let last_name: String?
             let full_name: String?
             let callsign: String?
+            let phone_number: String?
             let vehicle_type: String?
             let vehicle_color: String?
         }
@@ -932,7 +937,7 @@ final class SupabaseRPCService: @unchecked Sendable {
         let userIdStrings = activeUserIds.map { $0.uuidString }
         let users: [UserRecord] = try await client
             .from("users")
-            .select("id, email, full_name, callsign, vehicle_type, vehicle_color")
+            .select("id, email, first_name, last_name, full_name, callsign, phone_number, vehicle_type, vehicle_color")
             .in("id", values: userIdStrings)
             .execute()
             .value
@@ -950,14 +955,17 @@ final class SupabaseRPCService: @unchecked Sendable {
                 vehicleType = .sedan
             }
             
-            print("   User: \(userRecord.full_name ?? "no name"), callsign: \(userRecord.callsign ?? "none"), email: \(userRecord.email ?? "none")")
+            print("   User: \(userRecord.full_name ?? "no name"), callsign: \(userRecord.callsign ?? "none"), email: \(userRecord.email ?? "none"), phone: \(userRecord.phone_number ?? "none")")
             
             return User(
                 id: userId,
                 email: userRecord.email ?? "",
                 teamId: UUID(), // Not needed for assignment
                 agencyId: UUID(), // Not needed for assignment
+                firstName: userRecord.first_name,
+                lastName: userRecord.last_name,
                 callsign: userRecord.callsign,
+                phoneNumber: userRecord.phone_number,
                 vehicleType: vehicleType,
                 vehicleColor: userRecord.vehicle_color ?? "#808080"
             )
@@ -1273,6 +1281,421 @@ final class SupabaseRPCService: @unchecked Sendable {
                 teamId: teamId,
                 agencyId: agencyId
             )
+        }
+    }
+    
+    /// Get all draft operations for the current user
+    nonisolated func getDraftOperations() async throws -> [Operation] {
+        struct Response: Decodable {
+            let id: String
+            let name: String
+            let incident_number: String?
+            let created_at: String
+            let updated_at: String?
+            let case_agent_id: String
+            let team_id: String
+            let agency_id: String
+        }
+        
+        let responses: [Response] = try await client
+            .rpc("rpc_get_draft_operations")
+            .execute()
+            .value
+        
+        print("🔄 Loaded \(responses.count) draft operations")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        return responses.compactMap { response in
+            guard let id = UUID(uuidString: response.id),
+                  let caseAgentId = UUID(uuidString: response.case_agent_id),
+                  let teamId = UUID(uuidString: response.team_id),
+                  let agencyId = UUID(uuidString: response.agency_id),
+                  let createdAt = dateFormatter.date(from: response.created_at) else {
+                return nil
+            }
+            
+            return Operation(
+                id: id,
+                name: response.name,
+                incidentNumber: response.incident_number,
+                state: .draft,
+                createdAt: createdAt,
+                updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) },
+                startsAt: nil,
+                endsAt: nil,
+                createdByUserId: caseAgentId,
+                teamId: teamId,
+                agencyId: agencyId,
+                isDraft: true
+            )
+        }
+    }
+    
+    // MARK: - Template Functions
+    
+    /// Save an operation as a template
+    nonisolated func saveOperationAsTemplate(
+        name: String,
+        description: String?,
+        isPublic: Bool,
+        targets: [OpTarget],
+        staging: [StagingPoint]
+    ) async throws -> UUID {
+        struct Params: Encodable, Sendable {
+            let p_name: String
+            let p_description: String?
+            let p_is_public: Bool
+            let p_targets: [[String: AnyCodable]]
+            let p_staging: [[String: AnyCodable]]
+        }
+        
+        struct Response: Decodable, Sendable {
+            let template_id: String
+        }
+        
+        // Convert targets to JSON-compatible format
+        let targetsJson = targets.map { target -> [String: AnyCodable] in
+            var dict: [String: AnyCodable] = [
+                "kind": AnyCodable(target.kind.rawValue)
+            ]
+            
+            switch target.kind {
+            case .person:
+                if let firstName = target.personFirstName {
+                    dict["person_first_name"] = AnyCodable(firstName)
+                }
+                if let lastName = target.personLastName {
+                    dict["person_last_name"] = AnyCodable(lastName)
+                }
+                if let phone = target.phone {
+                    dict["phone"] = AnyCodable(phone)
+                }
+            case .vehicle:
+                if let make = target.vehicleMake {
+                    dict["vehicle_make"] = AnyCodable(make)
+                }
+                if let model = target.vehicleModel {
+                    dict["vehicle_model"] = AnyCodable(model)
+                }
+                if let color = target.vehicleColor {
+                    dict["vehicle_color"] = AnyCodable(color)
+                }
+                if let plate = target.licensePlate {
+                    dict["license_plate"] = AnyCodable(plate)
+                }
+            case .location:
+                if let name = target.locationName {
+                    dict["location_name"] = AnyCodable(name)
+                }
+                if let address = target.locationAddress {
+                    dict["location_address"] = AnyCodable(address)
+                }
+                if let lat = target.locationLat {
+                    dict["location_lat"] = AnyCodable(lat)
+                }
+                if let lng = target.locationLng {
+                    dict["location_lng"] = AnyCodable(lng)
+                }
+            }
+            
+            return dict
+        }
+        
+        // Convert staging to JSON-compatible format
+        let stagingJson = staging.compactMap { stage -> [String: AnyCodable]? in
+            guard let lat = stage.lat, let lng = stage.lng else { return nil }
+            return [
+                "label": AnyCodable(stage.label),
+                "address": AnyCodable(stage.address),
+                "latitude": AnyCodable(lat),
+                "longitude": AnyCodable(lng)
+            ]
+        }
+        
+        let params = Params(
+            p_name: name,
+            p_description: description,
+            p_is_public: isPublic,
+            p_targets: targetsJson,
+            p_staging: stagingJson
+        )
+        
+        let response: Response = try await client
+            .rpc("rpc_save_operation_as_template", params: params)
+            .execute()
+            .value
+        
+        guard let uuid = UUID(uuidString: response.template_id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid template ID format")
+        }
+        
+        return uuid
+    }
+    
+    /// Get templates (personal or agency-wide)
+    nonisolated func getTemplates(scope: String) async throws -> [OperationTemplate] {
+        struct Params: Encodable, Sendable {
+            let p_scope: String
+        }
+        
+        struct Response: Decodable, Sendable {
+            let id: String
+            let name: String
+            let description: String?
+            let created_by_user_id: String
+            let is_public: Bool
+            let created_at: String
+            let updated_at: String?
+            let target_count: Int
+            let staging_count: Int
+        }
+        
+        let params = Params(p_scope: scope)
+        
+        let responses: [Response] = try await client
+            .rpc("rpc_get_templates", params: params)
+            .execute()
+            .value
+        
+        print("🔄 Loaded \(responses.count) raw template responses (scope: \(scope))")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        let templates = responses.compactMap { response -> OperationTemplate? in
+            print("📋 Processing template: \(response.name)")
+            print("   ID: \(response.id)")
+            print("   Created by: \(response.created_by_user_id)")
+            print("   Created at: \(response.created_at)")
+            print("   Target count: \(response.target_count)")
+            
+            guard let id = UUID(uuidString: response.id) else {
+                print("   ❌ Failed to parse template ID")
+                return nil
+            }
+            
+            guard let createdByUserId = UUID(uuidString: response.created_by_user_id) else {
+                print("   ❌ Failed to parse created_by_user_id")
+                return nil
+            }
+            
+            guard let createdAt = dateFormatter.date(from: response.created_at) else {
+                print("   ❌ Failed to parse created_at date: \(response.created_at)")
+                return nil
+            }
+            
+            print("   ✅ Template parsed successfully")
+            
+            return OperationTemplate(
+                id: id,
+                name: response.name,
+                description: response.description,
+                createdByUserId: createdByUserId,
+                teamId: UUID(), // Not returned in list view
+                agencyId: UUID(), // Not returned in list view
+                createdAt: createdAt,
+                updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) },
+                isPublic: response.is_public,
+                targets: [], // Load separately when template is selected
+                staging: []  // Load separately when template is selected
+            )
+        }
+        
+        print("✅ Successfully parsed \(templates.count) templates")
+        return templates
+    }
+    
+    /// Get full template details including targets and staging points
+    nonisolated func getTemplateDetails(templateId: UUID) async throws -> OperationTemplate {
+        struct Params: Encodable, Sendable {
+            let p_template_id: String
+        }
+        
+        struct TargetResponse: Decodable, Sendable {
+            let id: String?
+            let kind: String
+            let person_first_name: String?
+            let person_last_name: String?
+            let phone: String?
+            let vehicle_make: String?
+            let vehicle_model: String?
+            let vehicle_color: String?
+            let license_plate: String?
+            let location_name: String?
+            let location_address: String?
+            let location_lat: Double?
+            let location_lng: Double?
+        }
+        
+        struct StagingResponse: Decodable, Sendable {
+            let id: String?
+            let label: String
+            let address: String?
+            let latitude: Double
+            let longitude: Double
+        }
+        
+        struct Response: Decodable, Sendable {
+            let id: String
+            let name: String
+            let description: String?
+            let is_public: Bool
+            let created_at: String
+            let updated_at: String?
+            let targets: [TargetResponse]
+            let staging: [StagingResponse]
+        }
+        
+        let params = Params(p_template_id: templateId.uuidString)
+        
+        let response: Response = try await client
+            .rpc("rpc_get_template_details", params: params)
+            .execute()
+            .value
+        
+        print("🔄 Loaded template details: \(response.name)")
+        print("   Targets: \(response.targets.count)")
+        print("   Staging: \(response.staging.count)")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        guard let id = UUID(uuidString: response.id) else {
+            throw SupabaseRPCError.invalidResponse("Invalid template ID")
+        }
+        
+        guard let createdAt = dateFormatter.date(from: response.created_at) else {
+            throw SupabaseRPCError.invalidResponse("Invalid created_at date")
+        }
+        
+        // Parse targets
+        let targets = response.targets.compactMap { targetResp -> OpTarget? in
+            guard let kind = OpTargetKind(rawValue: targetResp.kind) else {
+                print("⚠️ Unknown target kind: \(targetResp.kind)")
+                return nil
+            }
+            
+            let targetId = targetResp.id.flatMap { UUID(uuidString: $0) } ?? UUID()
+            
+            // Determine label based on kind
+            let label: String
+            switch kind {
+            case .person:
+                let name = [targetResp.person_first_name, targetResp.person_last_name]
+                    .compactMap { $0 }
+                    .joined(separator: " ")
+                label = name.isEmpty ? "Unknown Person" : name
+            case .vehicle:
+                let desc = [targetResp.vehicle_color, targetResp.vehicle_make, targetResp.vehicle_model]
+                    .compactMap { $0 }
+                    .joined(separator: " ")
+                label = desc.isEmpty ? (targetResp.license_plate ?? "Unknown Vehicle") : desc
+            case .location:
+                label = targetResp.location_name ?? targetResp.location_address ?? "Unknown Location"
+            }
+            
+            // Create target with all fields
+            var target = OpTarget(
+                id: targetId,
+                kind: kind,
+                label: label,
+                notes: nil
+            )
+            
+            // Set person fields
+            target.personFirstName = targetResp.person_first_name
+            target.personLastName = targetResp.person_last_name
+            target.personPhone = targetResp.phone
+            
+            // Set vehicle fields
+            target.vehicleMake = targetResp.vehicle_make
+            target.vehicleModel = targetResp.vehicle_model
+            target.vehicleColor = targetResp.vehicle_color
+            target.vehiclePlate = targetResp.license_plate
+            
+            // Set location fields
+            target.locationName = targetResp.location_name
+            target.locationAddress = targetResp.location_address
+            target.locationLat = targetResp.location_lat
+            target.locationLng = targetResp.location_lng
+            
+            return target
+        }
+        
+        // Parse staging points
+        let staging = response.staging.compactMap { stagingResp -> StagingPoint? in
+            let stagingId = stagingResp.id.flatMap { UUID(uuidString: $0) } ?? UUID()
+            
+            print("   📍 Staging from DB: label='\(stagingResp.label)', address='\(stagingResp.address ?? "nil")', lat=\(stagingResp.latitude), lng=\(stagingResp.longitude)")
+            
+            return StagingPoint(
+                id: stagingId,
+                label: stagingResp.label,
+                address: stagingResp.address ?? "",
+                lat: stagingResp.latitude,
+                lng: stagingResp.longitude
+            )
+        }
+        
+        print("✅ Parsed \(targets.count) targets and \(staging.count) staging points")
+        
+        return OperationTemplate(
+            id: id,
+            name: response.name,
+            description: response.description,
+            createdByUserId: UUID(), // Not needed for template application
+            teamId: UUID(), // Not needed
+            agencyId: UUID(), // Not needed
+            createdAt: createdAt,
+            updatedAt: response.updated_at.flatMap { dateFormatter.date(from: $0) },
+            isPublic: response.is_public,
+            targets: targets,
+            staging: staging
+        )
+    }
+}
+
+// MARK: - Supporting Models
+
+// Helper for encoding mixed types
+struct AnyCodable: Codable {
+    let value: Any
+    
+    init(_ value: Any) {
+        self.value = value
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        
+        if let string = value as? String {
+            try container.encode(string)
+        } else if let int = value as? Int {
+            try container.encode(int)
+        } else if let double = value as? Double {
+            try container.encode(double)
+        } else if let bool = value as? Bool {
+            try container.encode(bool)
+        } else {
+            try container.encodeNil()
+        }
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if let string = try? container.decode(String.self) {
+            value = string
+        } else if let int = try? container.decode(Int.self) {
+            value = int
+        } else if let double = try? container.decode(Double.self) {
+            value = double
+        } else if let bool = try? container.decode(Bool.self) {
+            value = bool
+        } else {
+            value = ""
         }
     }
 }

@@ -105,7 +105,10 @@ final class SupabaseAuthService {
                 let email: String
                 let team_id: String
                 let agency_id: String
+                let first_name: String?
+                let last_name: String?
                 let callsign: String?
+                let phone_number: String?
                 let vehicle_type: String
                 let vehicle_color: String
                 let created_at: String
@@ -134,7 +137,10 @@ final class SupabaseAuthService {
                 email: userResponse.email,
                 teamId: teamId,
                 agencyId: agencyId,
+                firstName: userResponse.first_name,
+                lastName: userResponse.last_name,
                 callsign: userResponse.callsign,
+                phoneNumber: userResponse.phone_number,
                 vehicleType: VehicleType(rawValue: userResponse.vehicle_type) ?? .sedan,
                 vehicleColor: userResponse.vehicle_color,
                 createdAt: ISO8601DateFormatter().date(from: userResponse.created_at) ?? Date()

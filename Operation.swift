@@ -46,17 +46,28 @@ struct User: Identifiable, Codable, Equatable {
     var email: String
     var teamId: UUID  // primary team
     var agencyId: UUID
+    var firstName: String?
+    var lastName: String?
     var callsign: String?
+    var phoneNumber: String?
     var vehicleType: VehicleType
     var vehicleColor: String  // hex color code
     var createdAt: Date
+    
+    var fullName: String? {
+        guard let first = firstName, let last = lastName else { return nil }
+        return "\(first) \(last)"
+    }
     
     init(
         id: UUID = UUID(),
         email: String,
         teamId: UUID,
         agencyId: UUID,
+        firstName: String? = nil,
+        lastName: String? = nil,
         callsign: String? = nil,
+        phoneNumber: String? = nil,
         vehicleType: VehicleType = .sedan,
         vehicleColor: String = "#0000FF",
         createdAt: Date = Date()
@@ -65,7 +76,10 @@ struct User: Identifiable, Codable, Equatable {
         self.email = email
         self.teamId = teamId
         self.agencyId = agencyId
+        self.firstName = firstName
+        self.lastName = lastName
         self.callsign = callsign
+        self.phoneNumber = phoneNumber
         self.vehicleType = vehicleType
         self.vehicleColor = vehicleColor
         self.createdAt = createdAt
@@ -152,11 +166,13 @@ struct Operation: Identifiable, Equatable {
     var incidentNumber: String?
     var state: OperationState
     var createdAt: Date
+    var updatedAt: Date?
     var startsAt: Date?  // When operation goes active
     var endsAt: Date?    // When operation ends
     var createdByUserId: UUID
     var teamId: UUID
     var agencyId: UUID
+    var isDraft: Bool
     
     // Related data (not stored in operations table)
     var targets: [OpTarget]
@@ -168,11 +184,13 @@ struct Operation: Identifiable, Equatable {
         incidentNumber: String? = nil,
         state: OperationState = .active,  // Operations are active by default when created
         createdAt: Date = Date(),
+        updatedAt: Date? = nil,
         startsAt: Date? = nil,
         endsAt: Date? = nil,
         createdByUserId: UUID,
         teamId: UUID,
         agencyId: UUID,
+        isDraft: Bool = false,
         targets: [OpTarget] = [],
         staging: [StagingPoint] = []
     ) {
@@ -181,11 +199,13 @@ struct Operation: Identifiable, Equatable {
         self.incidentNumber = incidentNumber
         self.state = state
         self.createdAt = createdAt
+        self.updatedAt = updatedAt
         self.startsAt = startsAt
         self.endsAt = endsAt
         self.createdByUserId = createdByUserId
         self.teamId = teamId
         self.agencyId = agencyId
+        self.isDraft = isDraft
         self.targets = targets
         self.staging = staging
     }
@@ -204,6 +224,30 @@ struct Operation: Identifiable, Equatable {
             targets: [],
             staging: []
         )
+    }
+}
+
+// MARK: - Draft Metadata
+
+struct DraftMetadata: Identifiable, Codable, Equatable {
+    let id: UUID
+    let operationId: UUID
+    let createdByUserId: UUID
+    var lastEditedAt: Date
+    var completionPercentage: Int
+    
+    init(
+        id: UUID = UUID(),
+        operationId: UUID,
+        createdByUserId: UUID,
+        lastEditedAt: Date = Date(),
+        completionPercentage: Int = 0
+    ) {
+        self.id = id
+        self.operationId = operationId
+        self.createdByUserId = createdByUserId
+        self.lastEditedAt = lastEditedAt
+        self.completionPercentage = completionPercentage
     }
 }
 
@@ -402,11 +446,13 @@ extension Operation: Codable {
         case incidentNumber = "incident_number"
         case state = "status"  // Database uses 'status' not 'state'
         case createdAt = "created_at"
+        case updatedAt = "updated_at"
         case startsAt = "started_at"  // Database uses 'started_at' not 'starts_at'
         case endsAt = "ended_at"      // Database uses 'ended_at' not 'ends_at'
         case createdByUserId = "case_agent_id"  // Database uses 'case_agent_id' not 'created_by_user_id'
         case teamId = "team_id"
         case agencyId = "agency_id"
+        case isDraft = "is_draft"
     }
     
     init(from decoder: Decoder) throws {
@@ -417,11 +463,13 @@ extension Operation: Codable {
         incidentNumber = try container.decodeIfPresent(String.self, forKey: .incidentNumber)
         state = try container.decode(OperationState.self, forKey: .state)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt)
         startsAt = try container.decodeIfPresent(Date.self, forKey: .startsAt)
         endsAt = try container.decodeIfPresent(Date.self, forKey: .endsAt)
         createdByUserId = try container.decode(UUID.self, forKey: .createdByUserId)
         teamId = try container.decode(UUID.self, forKey: .teamId)
         agencyId = try container.decode(UUID.self, forKey: .agencyId)
+        isDraft = try container.decodeIfPresent(Bool.self, forKey: .isDraft) ?? false
         
         // Initialize related data as empty - will be loaded separately
         targets = []
@@ -436,13 +484,60 @@ extension Operation: Codable {
         try container.encodeIfPresent(incidentNumber, forKey: .incidentNumber)
         try container.encode(state, forKey: .state)
         try container.encode(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(updatedAt, forKey: .updatedAt)
         try container.encodeIfPresent(startsAt, forKey: .startsAt)
         try container.encodeIfPresent(endsAt, forKey: .endsAt)
         try container.encode(createdByUserId, forKey: .createdByUserId)
         try container.encode(teamId, forKey: .teamId)
         try container.encode(agencyId, forKey: .agencyId)
+        try container.encode(isDraft, forKey: .isDraft)
         
         // Don't encode targets and staging - they're stored in separate tables
+    }
+}
+
+// MARK: - Operation Template
+
+/// Represents a reusable operation template
+struct OperationTemplate: Identifiable, Codable, Equatable {
+    let id: UUID
+    var name: String
+    var description: String?
+    var createdByUserId: UUID
+    var teamId: UUID
+    var agencyId: UUID
+    var createdAt: Date
+    var updatedAt: Date?
+    var isPublic: Bool  // If true, visible to entire agency; if false, only to creator
+    
+    // Template data
+    var targets: [OpTarget]
+    var staging: [StagingPoint]
+    
+    init(
+        id: UUID = UUID(),
+        name: String,
+        description: String? = nil,
+        createdByUserId: UUID,
+        teamId: UUID,
+        agencyId: UUID,
+        createdAt: Date = Date(),
+        updatedAt: Date? = nil,
+        isPublic: Bool = false,
+        targets: [OpTarget] = [],
+        staging: [StagingPoint] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.createdByUserId = createdByUserId
+        self.teamId = teamId
+        self.agencyId = agencyId
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.isPublic = isPublic
+        self.targets = targets
+        self.staging = staging
     }
 }
 

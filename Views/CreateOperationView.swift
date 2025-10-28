@@ -25,6 +25,7 @@ struct CreateOperationView: View {
     @State private var targets: [OpTarget] = []
     @State private var staging: [StagingPoint] = []
     @State private var selectedMemberIds: Set<UUID> = []
+    @State private var showingTemplatePicker = false
     
     // Default initializer for creating new operations
     init(clonedOperation: Operation? = nil, clonedTargets: [OpTarget] = [], clonedStaging: [StagingPoint] = []) {
@@ -62,6 +63,11 @@ struct CreateOperationView: View {
                 }
             }
             .background(Color(.systemGroupedBackground))
+            .sheet(isPresented: $showingTemplatePicker) {
+                TemplatePickerView { template in
+                    applyTemplate(template)
+                }
+            }
             .onAppear {
                 // Pre-fill data if cloning an operation
                 if let clonedOp = clonedOperation {
@@ -81,47 +87,82 @@ struct CreateOperationView: View {
     @ViewBuilder private var content: some View {
         switch step {
         case .name:
-            VStack(spacing: 24) {
-                Image(systemName: "target")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.blue.gradient)
-                    .padding(.top, 40)
-                
-                VStack(spacing: 8) {
-                    Text("Create Operation")
-                        .font(.title2.bold())
+            ScrollView {
+                VStack(spacing: 24) {
+                    Image(systemName: "target")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.blue.gradient)
+                        .padding(.top, 40)
                     
-                    Text("Enter the basic information")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    // Incident / Case Number field (first)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Incident / Case Number")
+                    VStack(spacing: 8) {
+                        Text("Create Operation")
+                            .font(.title2.bold())
+                        
+                        Text("Enter the basic information")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        
-                        TextField("e.g., 2024-10-19-001", text: $incidentNumber)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body)
+                            .multilineTextAlignment(.center)
                     }
                     
-                    // Operation Name field (second)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Operation Name")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Incident / Case Number field (first)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Incident / Case Number")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            
+                            TextField("e.g., 2024-10-19-001", text: $incidentNumber)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.body)
+                                .submitLabel(.next)
+                        }
                         
-                        TextField("e.g., Operation Nightfall", text: $name)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body)
+                        // Operation Name field (second)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Operation Name")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            
+                            TextField("e.g., Operation Nightfall", text: $name)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.body)
+                                .submitLabel(.go)
+                                .onSubmit {
+                                    if !disableNext {
+                                        next()
+                                    }
+                                }
+                        }
+                        
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        // From Template button
+                        Button {
+                            showingTemplatePicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.on.doc")
+                                Text("Start from Template")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
                     }
+                    .padding(.horizontal, 24)
+                    
+                    // Extra padding at bottom to ensure button is always visible above keyboard
+                    Spacer()
+                        .frame(height: 100)
                 }
-                .padding(.horizontal, 24)
             }
+            .scrollDismissesKeyboard(.interactively)
 
         case .targets:
             TargetsEditor(targets: $targets)
@@ -161,6 +202,24 @@ struct CreateOperationView: View {
         VStack(spacing: 12) {
             Divider()
             
+            // Save as Draft button (only on review step)
+            if step == .review {
+                Button {
+                    saveDraft()
+                } label: {
+                    HStack {
+                        Image(systemName: "doc.badge.plus")
+                        Text("Save as Draft")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.bordered)
+                .tint(.orange)
+                .padding(.horizontal)
+            }
+            
             HStack(spacing: 12) {
                 if step != .name {
                     Button {
@@ -179,7 +238,7 @@ struct CreateOperationView: View {
                 
                 Button {
                     if step == .review {
-                        createOperation()
+                        createOperation(isDraft: false)
                     } else {
                         next()
                     }
@@ -205,7 +264,23 @@ struct CreateOperationView: View {
         .background(Color(.systemBackground))
     }
     
-    private func createOperation() {
+    private func applyTemplate(_ template: OperationTemplate) {
+        print("📋 Applying template: \(template.name)")
+        print("   Targets: \(template.targets.count)")
+        print("   Staging: \(template.staging.count)")
+        
+        // Debug staging points
+        for (index, stage) in template.staging.enumerated() {
+            print("   Staging[\(index)]: label='\(stage.label)', address='\(stage.address)', lat=\(stage.lat ?? 0), lng=\(stage.lng ?? 0)")
+        }
+        
+        name = template.name
+        targets = template.targets
+        staging = template.staging
+        showingTemplatePicker = false
+    }
+    
+    private func createOperation(isDraft: Bool) {
         Task {
             do {
                 guard let userId = appState.currentUserID else {
@@ -241,7 +316,8 @@ struct CreateOperationView: View {
                     teamId: teamId,
                     agencyId: agencyId,
                     targets: targets,
-                    staging: staging
+                    staging: staging,
+                    isDraft: isDraft
                 )
                 
                 // Add selected team members to the operation
@@ -260,14 +336,23 @@ struct CreateOperationView: View {
                 }
                 
                 await MainActor.run {
-                    appState.activeOperationID = op.id
-                    appState.activeOperation = op
-                    dismiss()
+                    if isDraft {
+                        print("📝 Draft saved successfully")
+                        dismiss()
+                    } else {
+                        appState.activeOperationID = op.id
+                        appState.activeOperation = op
+                        dismiss()
+                    }
                 }
             } catch {
                 print("Failed to create operation: \(error)")
             }
         }
+    }
+    
+    private func saveDraft() {
+        createOperation(isDraft: true)
     }
 
     private var disableNext: Bool {
@@ -734,44 +819,42 @@ struct StagingEditor: View {
     @State private var zipCode = ""
     @State private var latitude: Double?
     @State private var longitude: Double?
+    @State private var editingStagingId: UUID?
 
     var body: some View {
         Form {
             Section {
                 Button {
-                    let fullAddress = [address, city, zipCode]
-                        .map { $0.trimmingCharacters(in: .whitespaces) }
-                        .filter { !$0.isEmpty }
-                        .joined(separator: ", ")
-                    
-                    staging.append(.init(
-                        id: UUID(),
-                        label: label.isEmpty ? "Staging" : label,
-                        address: fullAddress.isEmpty ? address : fullAddress,
-                        lat: latitude,
-                        lng: longitude
-                    ))
-                    label = ""
-                    address = ""
-                    city = ""
-                    zipCode = ""
-                    latitude = nil
-                    longitude = nil
+                    addOrUpdate()
                 } label: {
                     HStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Staging Point")
+                        Image(systemName: editingStagingId == nil ? "plus.circle.fill" : "checkmark.circle.fill")
+                        Text(editingStagingId == nil ? "Add Staging Point" : "Update Staging Point")
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 }
-                .disabled(label.trimmingCharacters(in: .whitespaces).isEmpty ||
-                          address.trimmingCharacters(in: .whitespaces).isEmpty ||
-                          latitude == nil || longitude == nil)
+                .disabled(!canAddStaging)
                 .buttonStyle(.borderedProminent)
+                .tint(editingStagingId == nil ? .blue : .green)
+                
+                if editingStagingId != nil {
+                    Button {
+                        clearFields()
+                    } label: {
+                        HStack {
+                            Image(systemName: "xmark.circle")
+                            Text("Cancel Edit")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                }
             }
             
-            Section("Staging Location") {
+            Section(editingStagingId == nil ? "Staging Location" : "Edit Staging Location") {
                 TextField("Label (e.g., 'North Parking')", text: $label)
                 
                 AddressSearchField(
@@ -791,25 +874,135 @@ struct StagingEditor: View {
             if !staging.isEmpty {
                 Section("Added Staging Points (\(staging.count))") {
                     ForEach(staging) { s in
-                        VStack(alignment: .leading, spacing: 4) {
+                        Button {
+                            loadStagingForEditing(s)
+                        } label: {
                             HStack {
                                 Image(systemName: "mappin.circle.fill")
                                     .foregroundStyle(.blue)
-                                Text(s.label)
-                                    .font(.headline)
+                                    .frame(width: 30)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(s.label)
+                                        .foregroundStyle(.primary)
+                                    
+                                    if editingStagingId == s.id {
+                                        Text("Editing...")
+                                            .font(.caption)
+                                            .foregroundStyle(.blue)
+                                    }
+                                }
+                                
                                 Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
-                            Text(s.address)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .padding(.leading, 24)
                         }
-                        .padding(.vertical, 4)
                     }
-                    .onDelete { staging.remove(atOffsets: $0) }
+                    .onDelete { 
+                        staging.remove(atOffsets: $0)
+                        // Clear editing state if deleted item was being edited
+                        if let editingId = editingStagingId,
+                           !staging.contains(where: { $0.id == editingId }) {
+                            clearFields()
+                        }
+                    }
                 }
             }
         }
+    }
+    
+    private var canAddStaging: Bool {
+        !label.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !address.trimmingCharacters(in: .whitespaces).isEmpty &&
+        latitude != nil && longitude != nil
+    }
+    
+    private func addOrUpdate() {
+        let fullAddress = [address, city, zipCode]
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        
+        let newStaging = StagingPoint(
+            id: editingStagingId ?? UUID(),
+            label: label.isEmpty ? "Staging" : label,
+            address: fullAddress.isEmpty ? address : fullAddress,
+            lat: latitude,
+            lng: longitude
+        )
+        
+        if let editingId = editingStagingId,
+           let index = staging.firstIndex(where: { $0.id == editingId }) {
+            // Update existing
+            staging[index] = newStaging
+        } else {
+            // Add new
+            staging.append(newStaging)
+        }
+        
+        clearFields()
+    }
+    
+    private func loadStagingForEditing(_ stagingPoint: StagingPoint) {
+        print("📝 Loading staging point for editing: \(stagingPoint.label)")
+        
+        editingStagingId = stagingPoint.id
+        label = stagingPoint.label
+        latitude = stagingPoint.lat
+        longitude = stagingPoint.lng
+        
+        // Check if address is empty (from old templates)
+        if stagingPoint.address.trimmingCharacters(in: .whitespaces).isEmpty {
+            print("   ⚠️ Staging point has no address - old template or coordinates-only")
+            // Leave fields empty - user will need to add address manually
+            address = ""
+            city = ""
+            zipCode = ""
+            return
+        }
+        
+        // Parse address into components (format: "street, city, zip")
+        let components = stagingPoint.address.components(separatedBy: ", ")
+        if components.count >= 3 {
+            // Full format: "street, city, zip"
+            address = components.dropLast(2).joined(separator: ", ")
+            city = components[components.count - 2]
+            zipCode = components.last ?? ""
+        } else if components.count == 2 {
+            // Two parts: could be "street, city" or "street, zip"
+            address = components.first ?? ""
+            // Try to determine if second part is zip (numeric) or city
+            let secondPart = components.last ?? ""
+            if secondPart.rangeOfCharacter(from: CharacterSet.decimalDigits) != nil {
+                // Looks like a zip code
+                city = ""
+                zipCode = secondPart
+            } else {
+                // Probably a city
+                city = secondPart
+                zipCode = ""
+            }
+        } else {
+            // Single component - use as street address
+            address = stagingPoint.address
+            city = ""
+            zipCode = ""
+        }
+        
+        print("   Parsed - Street: '\(address)', City: '\(city)', Zip: '\(zipCode)'")
+    }
+    
+    private func clearFields() {
+        editingStagingId = nil
+        label = ""
+        address = ""
+        city = ""
+        zipCode = ""
+        latitude = nil
+        longitude = nil
     }
 }
 

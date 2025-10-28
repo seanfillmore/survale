@@ -13,6 +13,7 @@ final class OperationStore: ObservableObject {
     
     @Published var operations: [Operation] = []
     @Published var previousOperations: [Operation] = []  // Ended operations
+    @Published var draftOperations: [Operation] = []  // Draft operations
     @Published var memberOperationIds: Set<UUID> = []  // Track which operations user is a member of
     @Published var isLoading = false
     @Published var error: String?
@@ -29,7 +30,7 @@ final class OperationStore: ObservableObject {
     
     // MARK: - Create Operation
     
-    /// Create a new operation (draft state)
+    /// Create a new operation (can be draft or active)
     func create(
         name: String,
         incidentNumber: String? = nil,
@@ -37,7 +38,8 @@ final class OperationStore: ObservableObject {
         teamId: UUID,
         agencyId: UUID,
         targets: [OpTarget] = [],
-        staging: [StagingPoint] = []
+        staging: [StagingPoint] = [],
+        isDraft: Bool = false
     ) async throws -> Operation {
         isLoading = true
         error = nil
@@ -46,7 +48,8 @@ final class OperationStore: ObservableObject {
             // Call RPC to create operation on server
             let operationId = try await rpcService.createOperation(
                 name: name,
-                incidentNumber: incidentNumber
+                incidentNumber: incidentNumber,
+                isDraft: isDraft
             )
             
             // Create local operation object
@@ -54,19 +57,24 @@ final class OperationStore: ObservableObject {
                 id: operationId,
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Untitled Operation" : name,
                 incidentNumber: incidentNumber,
-                state: .active,  // Operations are active by default
+                state: isDraft ? .draft : .active,
                 createdAt: Date(),
-                startsAt: Date(),  // Active from creation
+                startsAt: isDraft ? nil : Date(),  // Only set startsAt if active
                 endsAt: nil,
                 createdByUserId: userId,
                 teamId: teamId,
                 agencyId: agencyId,
+                isDraft: isDraft,
                 targets: targets,
                 staging: staging
             )
             
-            // Add to local list
-            operations.insert(operation, at: 0)
+            // Add to appropriate list based on draft status
+            if isDraft {
+                draftOperations.insert(operation, at: 0)
+            } else {
+                operations.insert(operation, at: 0)
+            }
             
             // Add creator as member (they created it, so they're automatically a member)
             memberOperationIds.insert(operationId)
@@ -237,12 +245,17 @@ final class OperationStore: ObservableObject {
             print("🔄 Loading previous operations...")
             let previousOps = try await rpcService.getPreviousOperations()
             
+            // Load draft operations
+            print("🔄 Loading draft operations...")
+            let drafts = try await rpcService.getDraftOperations()
+            
             await MainActor.run {
                 self.operations = results.map { $0.operation }
                 self.previousOperations = previousOps
+                self.draftOperations = drafts
                 self.memberOperationIds = Set(results.filter { $0.isMember }.map { $0.operation.id })
                 
-                print("✅ Loaded \(results.count) active operations, \(previousOps.count) previous operations")
+                print("✅ Loaded \(results.count) active operations, \(previousOps.count) previous operations, \(drafts.count) drafts")
                 
                 // Find which operation user is a member of
                 if let myOperation = results.first(where: { $0.isMember }) {
@@ -272,6 +285,7 @@ final class OperationStore: ObservableObject {
         await MainActor.run {
             self.operations = []
             self.previousOperations = []
+            self.draftOperations = []
             self.memberOperationIds = []
             self.isLoading = false
             self.error = nil
