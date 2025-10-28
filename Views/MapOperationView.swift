@@ -48,33 +48,10 @@ struct MapOperationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Show assignment banner for current user's assignments
-            if let myAssignment = currentUserAssignment {
-                AssignmentBanner(assignment: myAssignment)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color(uiColor: .systemBackground))
-            }
-            
-            if needsPermissionUI {
-                permissionCard
-            }
+            headerSection
             
             if appState.activeOperationID == nil {
-                VStack(spacing: 12) {
-                    Image(systemName: "map.circle")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-                    
-                    Text("No active operation")
-                        .font(.headline)
-                    
-                    Text("Create or join an operation in the Ops tab to see the map.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal)
+                emptyStateView
             } else {
                 // Debug: Show staging point count
                 if !stagingPoints.isEmpty {
@@ -782,6 +759,40 @@ struct MapOperationView: View {
         }
     }
     
+    // MARK: - View Components
+    
+    @ViewBuilder
+    private var headerSection: some View {
+        // Show assignment banner for current user's assignments
+        if let myAssignment = currentUserAssignment {
+            AssignmentBanner(assignment: myAssignment)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(uiColor: .systemBackground))
+        }
+        
+        if needsPermissionUI {
+            permissionCard
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "map.circle")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+            
+            Text("No active operation")
+                .font(.headline)
+            
+            Text("Create or join an operation in the Ops tab to see the map.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal)
+    }
+    
     // MARK: - Helper Functions
     
     private func iconForTargetKind(_ kind: OpTargetKind) -> String {
@@ -1073,7 +1084,8 @@ struct TargetInfoSheet: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(target.images) { image in
-                                        if let uiImage = OpTargetImageManager.shared.getImage(localPath: image.localPath) {
+                                        if let localPath = image.localPath,
+                                           let uiImage = OpTargetImageManager.shared.loadImage(atRelativePath: localPath) {
                                             Image(uiImage: uiImage)
                                                 .resizable()
                                                 .scaledToFill()
@@ -1216,7 +1228,7 @@ struct TeamMemberInfoSheet: View {
                             }
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(member.displayName)
+                            Text(member.fullName ?? member.email)
                                 .font(.title2.bold())
                             if let callsign = member.callsign {
                                 Text(callsign)
