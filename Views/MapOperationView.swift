@@ -168,7 +168,7 @@ struct MapOperationView: View {
         }
         
         MapReader { proxy in
-                    Map(position: $mapPosition, interactionModes: .all) {
+            Map(position: $mapPosition, interactionModes: .all) {
                     // User location (distinct from team members)
                     if let userLocation = loc.lastLocation {
                         Annotation("You", coordinate: userLocation.coordinate) {
@@ -240,7 +240,7 @@ struct MapOperationView: View {
                     if isMapReady {
                         ForEach(stagingPoints) { staging in
                             if let coordinate = staging.coordinate {
-                                Annotation(staging.label, coordinate: staging.coordinate) {
+                                Annotation(staging.label, coordinate: coordinate) {
                                     Button {
                                         selectedStaging = staging
                                     } label: {
@@ -303,86 +303,84 @@ struct MapOperationView: View {
                             MapPolyline(routeInfo.polyline)
                                 .stroke(.blue, lineWidth: 4)
                         }
-                    }
-                    }
-                    .mapStyle(mapStyle)
-                    .gesture(
-                        LongPressGesture(minimumDuration: 0.5)
-                            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
-                            .onEnded { value in
-                                guard case .second(true, let drag?) = value else { return }
-                                guard isCaseAgent else {
-                                    print("⚠️ Only case agents can assign locations")
-                                    return
-                                }
-                                if let coordinate = proxy.convert(drag.location, from: .local) {
-                                    handleMapLongPress(at: coordinate)
-                                }
-                            }
-                    )
-                .mapControls {
-                    MapUserLocationButton()
-                    MapCompass()
                 }
-                .overlay(alignment: .topLeading) {
-                    // Map type switcher
+            }
+            .mapStyle(mapStyle)
+            .gesture(
+                LongPressGesture(minimumDuration: 0.5)
+                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                    .onEnded { value in
+                        guard case .second(true, let drag?) = value else { return }
+                        guard isCaseAgent else {
+                            print("⚠️ Only case agents can assign locations")
+                            return
+                        }
+                        if let coordinate = proxy.convert(drag.location, from: .local) {
+                            handleMapLongPress(at: coordinate)
+                        }
+                    }
+            )
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
+            }
+            .overlay(alignment: .topLeading) {
+                // Map type switcher
+                Button {
+                    cycleMapStyle()
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: mapStyleIcon)
+                            .font(.title3)
+                        Text(mapStyleLabel)
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.gray.opacity(0.8))
+                    .cornerRadius(8)
+                    .shadow(radius: 4)
+                }
+                .padding(.leading, 12)
+                .padding(.top, 12)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                VStack(spacing: 12) {
+                    // Zoom to targets button
                     Button {
-                        cycleMapStyle()
+                        zoomToTargets()
                     } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: mapStyleIcon)
-                                .font(.title3)
-                            Text(mapStyleLabel)
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.gray.opacity(0.8))
-                        .cornerRadius(8)
-                        .shadow(radius: 4)
+                        Image(systemName: "target")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
                     }
-                    .padding(.leading, 12)
-                    .padding(.top, 12)
+                    
+                    // Zoom to team members button
+                    Button {
+                        zoomToTeamMembers()
+                    } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
                 }
-                .overlay(alignment: .bottomTrailing) {
-                    VStack(spacing: 12) {
-                        // Zoom to targets button
-                        Button {
-                            zoomToTargets()
-                        } label: {
-                            Image(systemName: "target")
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.red)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                        
-                        // Zoom to team members button
-                        Button {
-                            zoomToTeamMembers()
-                        } label: {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                    }
-                    .padding(.trailing, 12)
-                    .padding(.bottom, 20)
-                }
-                } // Close MapReader
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button(action: { showTrails.toggle() }) {
-                            Image(systemName: showTrails ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                        }
-                    }
+                .padding(.trailing, 12)
+                .padding(.bottom, 20)
+            }
+        } // Close MapReader
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: { showTrails.toggle() }) {
+                    Image(systemName: showTrails ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 }
             }
         }
