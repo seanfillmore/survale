@@ -87,68 +87,82 @@ struct CreateOperationView: View {
     @ViewBuilder private var content: some View {
         switch step {
         case .name:
-            VStack(spacing: 24) {
-                Image(systemName: "target")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.blue.gradient)
-                    .padding(.top, 40)
-                
-                VStack(spacing: 8) {
-                    Text("Create Operation")
-                        .font(.title2.bold())
+            ScrollView {
+                VStack(spacing: 24) {
+                    Image(systemName: "target")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.blue.gradient)
+                        .padding(.top, 40)
                     
-                    Text("Enter the basic information")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                
-                VStack(alignment: .leading, spacing: 16) {
-                    // Incident / Case Number field (first)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Incident / Case Number")
+                    VStack(spacing: 8) {
+                        Text("Create Operation")
+                            .font(.title2.bold())
+                        
+                        Text("Enter the basic information")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        
-                        TextField("e.g., 2024-10-19-001", text: $incidentNumber)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body)
+                            .multilineTextAlignment(.center)
                     }
                     
-                    // Operation Name field (second)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Operation Name")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
-                        TextField("e.g., Operation Nightfall", text: $name)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body)
-                    }
-                    
-                    Divider()
-                        .padding(.vertical, 8)
-                    
-                    // From Template button
-                    Button {
-                        showingTemplatePicker = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "doc.on.doc")
-                            Text("Start from Template")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Incident / Case Number field (first)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Incident / Case Number")
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                            
+                            TextField("e.g., 2024-10-19-001", text: $incidentNumber)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.body)
+                                .submitLabel(.next)
                         }
-                        .padding()
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .cornerRadius(10)
+                        
+                        // Operation Name field (second)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Operation Name")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            
+                            TextField("e.g., Operation Nightfall", text: $name)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.body)
+                                .submitLabel(.go)
+                                .onSubmit {
+                                    if !disableNext {
+                                        next()
+                                    }
+                                }
+                        }
+                        
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        // From Template button
+                        Button {
+                            showingTemplatePicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.on.doc")
+                                Text("Start from Template")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding()
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+                    
+                    // Extra padding at bottom to ensure button is always visible above keyboard
+                    Spacer()
+                        .frame(height: 100)
                 }
-                .padding(.horizontal, 24)
             }
+            .scrollDismissesKeyboard(.interactively)
 
         case .targets:
             TargetsEditor(targets: $targets)
