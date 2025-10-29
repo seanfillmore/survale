@@ -244,16 +244,22 @@ struct SignUpView: View {
         isLoading = true
         
         do {
+            print("🔐 Starting signup process...")
+            
             // Create auth account
+            print("   Step 1: Creating auth account...")
             let response = try await SupabaseAuthService.shared.supabase.auth.signUp(
                 email: email,
                 password: password
             )
             
             let userId = response.user.id
+            print("   ✅ Auth account created with ID: \(userId)")
             
-            // Update user profile with additional info
+            // Create user profile with additional info
+            print("   Step 2: Creating user profile...")
             try await updateUserProfile(userId: userId)
+            print("   ✅ User profile created successfully")
             
             info = "Account created successfully! You can now log in."
             
@@ -262,6 +268,14 @@ struct SignUpView: View {
             dismiss()
             
         } catch {
+            print("❌ Signup failed: \(error)")
+            if let postgrestError = error as? PostgrestError {
+                print("   PostgrestError details:")
+                print("   - Code: \(postgrestError.code ?? "none")")
+                print("   - Message: \(postgrestError.message)")
+                print("   - Detail: \(postgrestError.detail ?? "none")")
+                print("   - Hint: \(postgrestError.hint ?? "none")")
+            }
             self.error = (error as? LocalizedError)?.errorDescription ?? "Sign up failed: \(error.localizedDescription)"
         }
         
@@ -269,6 +283,9 @@ struct SignUpView: View {
     }
     
     private func updateUserProfile(userId: UUID) async throws {
+        // The trigger has already created a basic profile
+        // We just need to UPDATE it with the additional info from the signup form
+        
         struct UserUpdate: Encodable {
             let first_name: String
             let last_name: String
@@ -290,12 +307,15 @@ struct SignUpView: View {
             vehicle_color: vehicleColor.rawValue
         )
         
+        print("   → Updating user profile with signup info...")
         try await SupabaseAuthService.shared.supabase
             .from("users")
             .update(update)
             .eq("id", value: userId.uuidString)
             .execute()
+        print("   → User profile updated successfully")
     }
+    
 }
 
 // MARK: - Custom UI Components
