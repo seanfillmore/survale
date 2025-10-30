@@ -26,6 +26,8 @@
 		4525B9B62EB069B2001051FB /* StagingInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9B02EB069B2001051FB /* StagingInfoSheet.swift */; };
 		4525B9B72EB069B2001051FB /* TeamMemberInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9B32EB069B2001051FB /* TeamMemberInfoSheet.swift */; };
 		4525B9B82EB069B2001051FB /* InfoDetailRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9AF2EB069B2001051FB /* InfoDetailRow.swift */; };
+		4525B9EA2EB3014C001051FB /* ChatExportFilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */; };
+		4525B9EC2EB301B4001051FB /* ChatExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9EB2EB301B4001051FB /* ChatExportService.swift */; };
 		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
 		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
 		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
@@ -85,6 +87,8 @@
 		4525B9B12EB069B2001051FB /* TargetInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetInfoSheet.swift; sourceTree = "<group>"; };
 		4525B9B22EB069B2001051FB /* TargetMarker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetMarker.swift; sourceTree = "<group>"; };
 		4525B9B32EB069B2001051FB /* TeamMemberInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamMemberInfoSheet.swift; sourceTree = "<group>"; };
+		4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportFilterView.swift; sourceTree = "<group>"; };
+		4525B9EB2EB301B4001051FB /* ChatExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportService.swift; sourceTree = "<group>"; };
 		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
 		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
 		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
@@ -160,6 +164,7 @@
 		45B42AFC2EA2DE3400DF32CD = {
 			isa = PBXGroup;
 			children = (
+				4525B9EB2EB301B4001051FB /* ChatExportService.swift */,
 				45B42B5E2EA3DF3E00DF32CD /* OpTargetKind.swift */,
 				45B42B5A2EA3DB0800DF32CD /* OpTargetEditorView.swift */,
 				45B42B582EA3C04300DF32CD /* OpTargetGalleryView.swift */,
@@ -188,6 +193,7 @@
 		45B42B232EA2E16000DF32CD /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */,
 				4525B9AF2EB069B2001051FB /* InfoDetailRow.swift */,
 				4525B9B02EB069B2001051FB /* StagingInfoSheet.swift */,
 				4525B9B12EB069B2001051FB /* TargetInfoSheet.swift */,
@@ -367,6 +373,7 @@
 				45B42B6F2EA593AB00DF32CD /* EditOperationView.swift in Sources */,
 				45107E782EAD64A000E337C9 /* AssignLocationSheet.swift in Sources */,
 				45B42B462EA3221500DF32CD /* OperationStore.swift in Sources */,
+				4525B9EC2EB301B4001051FB /* ChatExportService.swift in Sources */,
 				45B42B572EA3C01F00DF32CD /* OpTargetImageManager.swift in Sources */,
 				4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */,
 				45B42B222EA2E13D00DF32CD /* SettingsView.swift in Sources */,
@@ -385,6 +392,7 @@
 				45B42B422EA30CB700DF32CD /* LocationServices.swift in Sources */,
 				45107E7C2EADA5E400E337C9 /* AssignmentDetailView.swift in Sources */,
 				45B42B5F2EA3DF4400DF32CD /* OpTargetKind.swift in Sources */,
+				4525B9EA2EB3014C001051FB /* ChatExportFilterView.swift in Sources */,
 				45107E7E2EAED55D00E337C9 /* RouteService.swift in Sources */,
 				45B42B362EA2FAB000DF32CD /* Secrets.swift in Sources */,
 				45B42B5B2EA3DB0F00DF32CD /* OpTargetEditorView.swift in Sources */,
