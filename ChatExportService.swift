@@ -9,10 +9,9 @@
 import Foundation
 import PDFKit
 import UIKit
-import Supabase
 
 /// Filters for chat export
-struct ChatExportFilters: Sendable {
+struct ChatExportFilters {
     var startDate: Date?
     var endDate: Date?
     var selectedMemberIds: Set<UUID>?  // nil = all members
@@ -39,7 +38,7 @@ struct ChatExportFilters: Sendable {
 }
 
 /// Result of a chat export operation
-struct ChatExportResult: Sendable {
+struct ChatExportResult {
     let pdfURL: URL
     let mediaFolderURL: URL?
     let messageCount: Int
@@ -62,10 +61,8 @@ class ChatExportService {
         operationId: UUID,
         operation: Operation,
         members: [User],
-        filters: ChatExportFilters? = nil
+        filters: ChatExportFilters = ChatExportFilters()
     ) async throws -> ChatExportResult {
-        
-        let exportFilters = filters ?? ChatExportFilters()
         
         print("📄 Starting chat export for operation: \(operation.name)")
         
@@ -76,7 +73,7 @@ class ChatExportService {
         
         // 2. Apply filters
         let filteredMessages = allMessages.filter { message in
-            exportFilters.matches(message: message, messageDate: message.createdAt)
+            filters.matches(message: message, messageDate: message.createdAt)
         }
         print("   → After filtering: \(filteredMessages.count) messages")
         
@@ -96,7 +93,7 @@ class ChatExportService {
             members: members,
             messages: filteredMessages,
             mediaFiles: mediaFiles,
-            filters: exportFilters
+            filters: filters
         )
         print("   → PDF generated at: \(pdfURL.path)")
         
@@ -461,7 +458,7 @@ class ChatExportService {
 
 // MARK: - Supporting Types
 
-struct MediaFile: Sendable {
+struct MediaFile {
     let id: String
     let data: Data
     let filename: String
