@@ -39,6 +39,9 @@ struct ActiveOperationDetailView: View {
     @State private var showingChatExport = false
     @State private var isExporting = false
     @State private var exportError: String?
+    @State private var showingPDFPreview = false
+    @State private var exportedPDFURL: URL?
+    @State private var exportedMediaFolderURL: URL?
     
     var body: some View {
         ScrollView {
@@ -525,6 +528,20 @@ struct ActiveOperationDetailView: View {
                 }
             )
         }
+        .fullScreenCover(isPresented: $showingPDFPreview) {
+            if let pdfURL = exportedPDFURL {
+                PDFPreviewView(
+                    pdfURL: pdfURL,
+                    mediaFolderURL: exportedMediaFolderURL,
+                    onDismiss: {
+                        showingPDFPreview = false
+                        exportedPDFURL = nil
+                        exportedMediaFolderURL = nil
+                    }
+                )
+                .ignoresSafeArea()
+            }
+        }
         .sheet(item: $selectedMember) { member in
             MemberDetailView(member: member, isCaseAgent: member.id == operation.createdByUserId)
         }
@@ -803,10 +820,12 @@ struct ActiveOperationDetailView: View {
             
             print("✅ Export complete: \(result.messageCount) messages, \(result.mediaCount) media files")
             
-            // Present share sheet with the PDF and media folder
+            // Present PDF preview (user can then share/save from preview)
             await MainActor.run {
                 isExporting = false
-                presentShareSheet(pdfURL: result.pdfURL, mediaFolderURL: result.mediaFolderURL)
+                exportedPDFURL = result.pdfURL
+                exportedMediaFolderURL = result.mediaFolderURL
+                showingPDFPreview = true
             }
             
         } catch {
@@ -818,43 +837,6 @@ struct ActiveOperationDetailView: View {
         }
     }
     
-    private func presentShareSheet(pdfURL: URL, mediaFolderURL: URL?) {
-        var itemsToShare: [Any] = [pdfURL]
-        
-        // If there are media files, add the folder
-        if let mediaFolder = mediaFolderURL {
-            itemsToShare.append(mediaFolder)
-        }
-        
-        // Get the top-most view controller
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first,
-              let rootVC = window.rootViewController else {
-            print("⚠️ Could not find root view controller to present share sheet")
-            return
-        }
-        
-        // Find the topmost presented view controller
-        var topVC = rootVC
-        while let presented = topVC.presentedViewController {
-            topVC = presented
-        }
-        
-        // Present the share sheet
-        let activityVC = UIActivityViewController(
-            activityItems: itemsToShare,
-            applicationActivities: nil
-        )
-        
-        // For iPad
-        if let popover = activityVC.popoverPresentationController {
-            popover.sourceView = topVC.view
-            popover.sourceRect = CGRect(x: topVC.view.bounds.midX, y: topVC.view.bounds.midY, width: 0, height: 0)
-            popover.permittedArrowDirections = []
-        }
-        
-        topVC.present(activityVC, animated: true)
-    }
 }
 
 // MARK: - Join Requests Sheet
