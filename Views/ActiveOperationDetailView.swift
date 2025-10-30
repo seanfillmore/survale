@@ -36,6 +36,9 @@ struct ActiveOperationDetailView: View {
     @State private var showingCloneOperation = false
     @State private var selectedMember: User?
     @State private var showingSaveAsTemplate = false
+    @State private var showingChatExport = false
+    @State private var isExporting = false
+    @State private var exportError: String?
     
     var body: some View {
         ScrollView {
@@ -427,6 +430,56 @@ struct ActiveOperationDetailView: View {
                     }
                     .padding(.bottom)
                 }
+                
+                // Export Chat button (only for ended operations)
+                if operation.state == .ended {
+                    VStack(spacing: 12) {
+                        Divider()
+                            .padding(.vertical)
+                        
+                        Button {
+                            showingChatExport = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Export Chat Report")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green.opacity(0.1))
+                            .foregroundStyle(.green)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                        .disabled(isExporting)
+                        
+                        Text("Generate PDF report with chat messages and media")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                        
+                        if isExporting {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Generating export...")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        
+                        if let error = exportError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                    }
+                    .padding(.bottom)
+                }
             }
             .padding(.bottom, 20)
         }
@@ -460,6 +513,17 @@ struct ActiveOperationDetailView: View {
         }
         .sheet(isPresented: $showingSaveAsTemplate) {
             SaveAsTemplateView(operation: operation, targets: targets, staging: staging)
+        }
+        .sheet(isPresented: $showingChatExport) {
+            ChatExportFilterView(
+                operation: operation,
+                members: operationMembers,
+                onExport: { filters in
+                    Task {
+                        await handleExport(filters: filters)
+                    }
+                }
+            )
         }
         .sheet(item: $selectedMember) { member in
             MemberDetailView(member: member, isCaseAgent: member.id == operation.createdByUserId)
@@ -720,6 +784,76 @@ struct ActiveOperationDetailView: View {
                 print("❌ Failed to load join requests: \(error)")
             }
         }
+    }
+    
+    private func handleExport(filters: ChatExportFilters) async {
+        isExporting = true
+        exportError = nil
+        
+        do {
+            print("📤 Starting chat export with filters...")
+            
+            // Export chat using the service
+            let result = try await ChatExportService.shared.exportChat(
+                operationId: operation.id,
+                operation: operation,
+                members: operationMembers,
+                filters: filters
+            )
+            
+            print("✅ Export complete: \(result.messageCount) messages, \(result.mediaCount) media files")
+            
+            // Present share sheet with the PDF and media folder
+            await MainActor.run {
+                isExporting = false
+                presentShareSheet(pdfURL: result.pdfURL, mediaFolderURL: result.mediaFolderURL)
+            }
+            
+        } catch {
+            print("❌ Export failed: \(error.localizedDescription)")
+            await MainActor.run {
+                isExporting = false
+                exportError = error.localizedDescription
+            }
+        }
+    }
+    
+    private func presentShareSheet(pdfURL: URL, mediaFolderURL: URL?) {
+        var itemsToShare: [Any] = [pdfURL]
+        
+        // If there are media files, add the folder
+        if let mediaFolder = mediaFolderURL {
+            itemsToShare.append(mediaFolder)
+        }
+        
+        // Get the top-most view controller
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else {
+            print("⚠️ Could not find root view controller to present share sheet")
+            return
+        }
+        
+        // Find the topmost presented view controller
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        
+        // Present the share sheet
+        let activityVC = UIActivityViewController(
+            activityItems: itemsToShare,
+            applicationActivities: nil
+        )
+        
+        // For iPad
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = topVC.view
+            popover.sourceRect = CGRect(x: topVC.view.bounds.midX, y: topVC.view.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        
+        topVC.present(activityVC, animated: true)
     }
 }
 
