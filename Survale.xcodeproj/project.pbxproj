@@ -29,6 +29,7 @@
 		4525B9EA2EB3014C001051FB /* ChatExportFilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */; };
 		4525B9EC2EB301B4001051FB /* ChatExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9EB2EB301B4001051FB /* ChatExportService.swift */; };
 		4525B9ED2EB30500001051FB /* ChatExportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9EE2EB30500001051FB /* ChatExportModels.swift */; };
+		4525BA1E2EB31AA0001051FB /* PDFPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525BA1D2EB31AA0001051FB /* PDFPreviewView.swift */; };
 		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
 		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
 		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
@@ -91,6 +92,7 @@
 		4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportFilterView.swift; sourceTree = "<group>"; };
 		4525B9EB2EB301B4001051FB /* ChatExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportService.swift; sourceTree = "<group>"; };
 		4525B9EE2EB30500001051FB /* ChatExportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportModels.swift; sourceTree = "<group>"; };
+		4525BA1D2EB31AA0001051FB /* PDFPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPreviewView.swift; sourceTree = "<group>"; };
 		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
 		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
 		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
@@ -194,6 +196,7 @@
 		45B42B232EA2E16000DF32CD /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4525BA1D2EB31AA0001051FB /* PDFPreviewView.swift */,
 				4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */,
 				4525B9AF2EB069B2001051FB /* InfoDetailRow.swift */,
 				4525B9B02EB069B2001051FB /* StagingInfoSheet.swift */,
@@ -396,6 +399,7 @@
 				45B42B422EA30CB700DF32CD /* LocationServices.swift in Sources */,
 				45107E7C2EADA5E400E337C9 /* AssignmentDetailView.swift in Sources */,
 				45B42B5F2EA3DF4400DF32CD /* OpTargetKind.swift in Sources */,
+				4525BA1E2EB31AA0001051FB /* PDFPreviewView.swift in Sources */,
 				4525B9EA2EB3014C001051FB /* ChatExportFilterView.swift in Sources */,
 				45107E7E2EAED55D00E337C9 /* RouteService.swift in Sources */,
 				45B42B362EA2FAB000DF32CD /* Secrets.swift in Sources */,

@@ -67,3 +67,5 @@ Secrets.swift
 # Documentation builds
 docs/_build/
 
+# Generated PDFs
+Docs/*.pdf
