@@ -34,6 +34,7 @@ struct MapOperationView: View {
     @State private var selectedTarget: OpTarget?
     @State private var selectedStaging: StagingPoint?
     @State private var selectedMember: User?
+    @State private var showingDirections = false
     
     struct AssignmentData: Identifiable {
         let id = UUID()
@@ -75,6 +76,12 @@ struct MapOperationView: View {
             }
             .sheet(item: $selectedMember) { member in
                 TeamMemberInfoSheet(member: member, assignmentService: assignmentService, routeService: routeService, operationId: appState.activeOperationID)
+            }
+            .sheet(isPresented: $showingDirections) {
+                if let myAssignment = currentUserAssignment,
+                   let routeInfo = routeService.getRoute(for: myAssignment.id) {
+                    DirectionsSheet(routeInfo: routeInfo, assignment: myAssignment)
+                }
             }
             .task {
                 await loadInitialData()
@@ -347,6 +354,22 @@ struct MapOperationView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 VStack(spacing: 12) {
+                    // Turn-by-turn directions button (only when navigating)
+                    if let myAssignment = currentUserAssignment,
+                       routeService.getRoute(for: myAssignment.id) != nil {
+                        Button {
+                            showingDirections = true
+                        } label: {
+                            Image(systemName: "arrow.triangle.turn.up.right.diamond.fill")
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.green)
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
+                        }
+                    }
+                    
                     // Zoom to targets button
                     Button {
                         zoomToTargets()
@@ -1006,6 +1029,124 @@ extension OpTargetKind {
         case .person: return .green
         case .vehicle: return .orange
         case .location: return .red
+        }
+    }
+}
+
+// MARK: - Directions Sheet
+
+struct DirectionsSheet: View {
+    let routeInfo: RouteInfo
+    let assignment: AssignedLocation
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Route summary
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Route to \(assignment.label ?? "Assignment")")
+                            .font(.title2.bold())
+                        
+                        HStack(spacing: 20) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.triangle.branch")
+                                    .foregroundStyle(.blue)
+                                Text(routeInfo.distanceText)
+                                    .font(.subheadline)
+                            }
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock")
+                                    .foregroundStyle(.blue)
+                                Text(routeInfo.travelTimeText)
+                                    .font(.subheadline)
+                            }
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "flag.checkered")
+                                    .foregroundStyle(.blue)
+                                Text("ETA: \(routeInfo.etaText)")
+                                    .font(.subheadline)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    
+                    // Turn-by-turn directions
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Directions")
+                            .font(.headline)
+                            .padding(.horizontal)
+                            .padding(.bottom, 8)
+                        
+                        ForEach(Array(routeInfo.steps.enumerated()), id: \.offset) { index, step in
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack(alignment: .top, spacing: 12) {
+                                    // Step number
+                                    ZStack {
+                                        Circle()
+                                            .fill(index == 0 ? Color.green : (index == routeInfo.steps.count - 1 ? Color.red : Color.blue))
+                                            .frame(width: 32, height: 32)
+                                        
+                                        if index == 0 {
+                                            Image(systemName: "location.fill")
+                                                .font(.caption)
+                                                .foregroundStyle(.white)
+                                        } else if index == routeInfo.steps.count - 1 {
+                                            Image(systemName: "flag.fill")
+                                                .font(.caption)
+                                                .foregroundStyle(.white)
+                                        } else {
+                                            Text("\(index)")
+                                                .font(.caption.bold())
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(step.instructions.isEmpty ? "Continue on route" : step.instructions)
+                                            .font(.body)
+                                        
+                                        if step.distance > 0 {
+                                            let formatter = MKDistanceFormatter()
+                                            formatter.unitStyle = .abbreviated
+                                            Text(formatter.string(fromDistance: step.distance))
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 12)
+                                
+                                if index < routeInfo.steps.count - 1 {
+                                    Divider()
+                                        .padding(.leading, 56)
+                                }
+                            }
+                        }
+                    }
+                    .background(Color(.systemBackground))
+                    .cornerRadius(12)
+                    .shadow(radius: 2)
+                }
+                .padding()
+            }
+            .navigationTitle("Turn-by-Turn")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
