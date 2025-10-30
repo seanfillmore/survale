@@ -7,6 +7,7 @@
 
 import SwiftUI
 import QuickLook
+import UniformTypeIdentifiers
 
 struct PDFPreviewView: UIViewControllerRepresentable {
     let pdfURL: URL
@@ -63,21 +64,38 @@ class PDFPreviewViewController: UIViewController, QLPreviewControllerDataSource,
     }
     
     @objc private func shareButtonTapped() {
-        var itemsToShare: [Any] = [pdfURL]
-        
-        // Add media folder if present
-        if let mediaFolder = mediaFolderURL {
-            itemsToShare.append(mediaFolder)
-        }
+        // Share only the PDF file
+        // Media thumbnails are embedded in the PDF, full media files are in temp folder
+        let itemsToShare: [Any] = [pdfURL]
         
         let activityVC = UIActivityViewController(
             activityItems: itemsToShare,
             applicationActivities: nil
         )
         
+        // Exclude certain activities that don't make sense for PDF exports
+        activityVC.excludedActivityTypes = [
+            .assignToContact,
+            .addToReadingList,
+            .postToFacebook,
+            .postToTwitter,
+            .postToWeibo,
+            .postToVimeo
+        ]
+        
         // For iPad
         if let popover = activityVC.popoverPresentationController {
             popover.barButtonItem = previewController.navigationItem.rightBarButtonItem
+            popover.permittedArrowDirections = .any
+        }
+        
+        // Add completion handler
+        activityVC.completionWithItemsHandler = { activityType, completed, returnedItems, error in
+            if let error = error {
+                print("❌ Share error: \(error.localizedDescription)")
+            } else if completed {
+                print("✅ Successfully shared PDF export")
+            }
         }
         
         previewController.present(activityVC, animated: true)
