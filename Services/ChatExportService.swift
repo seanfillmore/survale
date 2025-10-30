@@ -196,18 +196,29 @@ class ChatExportService {
                 filters: filters
             )
             
-            // Subsequent pages: Messages
-            var yOffset: CGFloat = 60  // Start position on page
+            // Start a NEW page for messages
+            context.beginPage()
+            
+            // Draw "MESSAGES" header on first message page
             let margin: CGFloat = 50
             let contentWidth = pageRect.width - (margin * 2)
+            var yOffset: CGFloat = 60
             
+            let messagesHeaderAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.boldSystemFont(ofSize: 24),
+                .foregroundColor: UIColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1.0)
+            ]
+            "MESSAGES".draw(at: CGPoint(x: margin, y: yOffset), withAttributes: messagesHeaderAttributes)
+            yOffset += 50  // Space after header
+            
+            // Draw messages
             for (index, message) in messages.enumerated() {
                 // Check if we need a new page
                 let estimatedHeight = estimateMessageHeight(message: message, width: contentWidth)
                 
                 if yOffset + estimatedHeight > pageRect.height - margin {
                     context.beginPage()
-                    yOffset = 60
+                    yOffset = 60  // Reset to top of new page
                 }
                 
                 // Draw message
@@ -219,7 +230,7 @@ class ChatExportService {
                     mediaFiles: mediaFiles
                 )
                 
-                yOffset += 20  // Spacing between messages
+                yOffset += 25  // Increased spacing between messages for better readability
             }
         }
         
@@ -576,26 +587,36 @@ class ChatExportService {
         let padding: CGFloat = 12
         let messagePadding: CGFloat = 8
         
+        // Match the paragraph style used in drawing
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 2
+        
         let contentAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 11)
+            .font: UIFont.systemFont(ofSize: 11),
+            .paragraphStyle: paragraphStyle
         ]
         
         let contentWidth = width - (padding * 2) - (messagePadding * 2)
         let contentSize = message.content.boundingRect(
             with: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin],
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
             attributes: contentAttributes,
             context: nil
         )
         
-        // Header (20) + separator (10) + content + padding
-        var height: CGFloat = 30 + contentSize.height + messagePadding * 2 + padding * 2
+        // Calculate exact height to match drawMessage:
+        // padding + header (20) + separator (10) + messagePadding + content + messagePadding + 10 (spacing after content)
+        var height: CGFloat = padding + 20 + 10 + messagePadding + contentSize.height + messagePadding + 10
         
         if message.mediaPath != nil {
-            height += 125  // Thumbnail + spacing + filename
+            // Thumbnail (100) + spacing above (0) + filename label (20)
+            height += 120
         }
         
-        return height + 20  // Add spacing between messages
+        // Add padding at bottom of box
+        height += padding
+        
+        return height
     }
     
     private func createMediaFolder(mediaFiles: [MediaFile], operationName: String) throws -> URL {
