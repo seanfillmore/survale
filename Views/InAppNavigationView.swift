@@ -180,6 +180,10 @@ struct InAppNavigationView: View {
                 TurnByTurnStepsView(steps: routeInfo.steps)
             }
         }
+        .task {
+            // Calculate route when view appears
+            await calculateRoute()
+        }
         .onChange(of: locationService.lastLocation) { _, newLocation in
             if isFollowingUser, let location = newLocation {
                 withAnimation {
@@ -191,6 +195,39 @@ struct InAppNavigationView: View {
                     )
                 }
             }
+            
+            // Recalculate route when user location updates
+            Task {
+                await calculateRoute()
+            }
+        }
+    }
+    
+    // MARK: - Route Calculation
+    
+    private func calculateRoute() async {
+        guard let userLocation = locationService.lastLocation else {
+            print("⚠️ Cannot calculate route - no user location")
+            return
+        }
+        
+        print("🗺️ Calculating route from user location to assignment: \(assignment.label ?? "Unknown")")
+        print("   From: (\(userLocation.coordinate.latitude), \(userLocation.coordinate.longitude))")
+        print("   To: (\(assignment.coordinate.latitude), \(assignment.coordinate.longitude))")
+        
+        await routeService.calculateRoute(
+            for: assignment.id,
+            from: userLocation.coordinate,
+            to: assignment.coordinate
+        )
+        
+        if let route = routeService.getRoute(for: assignment.id) {
+            print("✅ Route calculated successfully")
+            print("   Distance: \(route.distanceText)")
+            print("   Travel time: \(route.travelTimeText)")
+            print("   Steps: \(route.steps.count)")
+        } else {
+            print("❌ Route calculation failed - no route returned")
         }
     }
     
