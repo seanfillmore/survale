@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MapKit
+import QuickLook
 
 struct TransferSheetData: Identifiable {
     let id = UUID()
@@ -44,6 +45,14 @@ struct ActiveOperationDetailView: View {
     @State private var exportedMediaFolderURL: URL?
     
     var body: some View {
+        mainContent
+            .navigationTitle("Operation Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .applyModifiers()
+    }
+    
+    @ViewBuilder
+    private var mainContent: some View {
         ScrollView {
             VStack(spacing: 20) {
                 // Enhanced Header with Summary Card
@@ -486,8 +495,81 @@ struct ActiveOperationDetailView: View {
             }
             .padding(.bottom, 20)
         }
-        .navigationTitle("Operation Details")
-        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var isYourActiveOperation: Bool {
+        appState.activeOperationID == operation.id
+    }
+    
+    private var isCaseAgent: Bool {
+        operation.createdByUserId == appState.currentUserID
+    }
+    
+    private var operationIcon: String {
+        if operation.state == .ended {
+            return "checkmark.circle.fill"
+        } else if isYourActiveOperation {
+            return "bolt.circle.fill"
+        } else {
+            return "doc.text.fill"
+        }
+    }
+    
+    private var operationColor: Color {
+        if operation.state == .ended {
+            return .gray
+        } else if isYourActiveOperation {
+            return .green
+        } else {
+            return .blue
+        }
+    }
+    
+    private var statusText: String {
+        if operation.state == .ended {
+            return "Ended"
+        } else if isYourActiveOperation {
+            return "Your Active Operation"
+        } else {
+            return "Active"
+        }
+    }
+    
+    private var statusColor: Color {
+        if operation.state == .ended {
+            return .gray
+        } else if isYourActiveOperation {
+            return .green
+        } else {
+            return .blue
+        }
+    }
+    
+    private var durationText: String {
+        let now = Date()
+        let duration = now.timeIntervalSince(operation.createdAt)
+        let hours = Int(duration / 3600)
+        let minutes = Int((duration.truncatingRemainder(dividingBy: 3600)) / 60)
+        
+        if hours > 24 {
+            let days = hours / 24
+            return "\(days)d"
+        } else if hours > 0 {
+            return "\(hours)h"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+}
+
+// MARK: - View Extensions
+
+extension ActiveOperationDetailView {
+    @ViewBuilder
+    func applyModifiers() -> some View {
+        self
         .sheet(isPresented: $showingEdit) {
             EditOperationView(operation: operation)
         }
@@ -577,72 +659,6 @@ struct ActiveOperationDetailView: View {
             Task {
                 await refreshData()
             }
-        }
-    }
-    
-    // MARK: - Computed Properties
-    
-    private var isYourActiveOperation: Bool {
-        appState.activeOperationID == operation.id
-    }
-    
-    private var isCaseAgent: Bool {
-        operation.createdByUserId == appState.currentUserID
-    }
-    
-    private var operationIcon: String {
-        if operation.state == .ended {
-            return "checkmark.circle.fill"
-        } else if isYourActiveOperation {
-            return "bolt.circle.fill"
-        } else {
-            return "doc.text.fill"
-        }
-    }
-    
-    private var operationColor: Color {
-        if operation.state == .ended {
-            return .gray
-        } else if isYourActiveOperation {
-            return .green
-        } else {
-            return .blue
-        }
-    }
-    
-    private var statusText: String {
-        if operation.state == .ended {
-            return "Ended"
-        } else if isYourActiveOperation {
-            return "Your Active Operation"
-        } else {
-            return "Active"
-        }
-    }
-    
-    private var statusColor: Color {
-        if operation.state == .ended {
-            return .gray
-        } else if isYourActiveOperation {
-            return .green
-        } else {
-            return .blue
-        }
-    }
-    
-    private var durationText: String {
-        let now = Date()
-        let duration = now.timeIntervalSince(operation.createdAt)
-        let hours = Int(duration / 3600)
-        let minutes = Int((duration.truncatingRemainder(dividingBy: 3600)) / 60)
-        
-        if hours > 24 {
-            let days = hours / 24
-            return "\(days)d"
-        } else if hours > 0 {
-            return "\(hours)h"
-        } else {
-            return "\(minutes)m"
         }
     }
     
