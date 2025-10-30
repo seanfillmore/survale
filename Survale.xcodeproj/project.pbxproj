@@ -164,7 +164,6 @@
 		45B42AFC2EA2DE3400DF32CD = {
 			isa = PBXGroup;
 			children = (
-				4525B9EB2EB301B4001051FB /* ChatExportService.swift */,
 				45B42B5E2EA3DF3E00DF32CD /* OpTargetKind.swift */,
 				45B42B5A2EA3DB0800DF32CD /* OpTargetEditorView.swift */,
 				45B42B582EA3C04300DF32CD /* OpTargetGalleryView.swift */,
@@ -238,6 +237,7 @@
 		45B42B402EA30CA100DF32CD /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				4525B9EB2EB301B4001051FB /* ChatExportService.swift */,
 				45107EA22EAF9B6400E337C9 /* SupabaseClientManager.swift */,
 				45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */,
 				45107E7D2EAED55C00E337C9 /* RouteService.swift */,
