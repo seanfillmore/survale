@@ -256,6 +256,10 @@ struct MapOperationView: View {
                                                 .padding(.vertical, 2)
                                                 .background(assignment.status.color)
                                                 .cornerRadius(4)
+                                        } else {
+                                            // Debug: Route not found
+                                            let _ = print("⚠️ ETA not showing - assignment \(assignment.id) is enRoute but no route info found")
+                                            let _ = print("   Available routes: \(routeService.getAllRoutes().count) total")
                                         }
                                     }
                                 }
