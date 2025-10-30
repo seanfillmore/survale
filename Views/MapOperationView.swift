@@ -1044,97 +1044,8 @@ struct DirectionsSheet: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Route summary
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Route to \(assignment.label ?? "Assignment")")
-                            .font(.title2.bold())
-                        
-                        HStack(spacing: 20) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.triangle.branch")
-                                    .foregroundStyle(.blue)
-                                Text(routeInfo.distanceText)
-                                    .font(.subheadline)
-                            }
-                            
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock")
-                                    .foregroundStyle(.blue)
-                                Text(routeInfo.travelTimeText)
-                                    .font(.subheadline)
-                            }
-                            
-                            HStack(spacing: 4) {
-                                Image(systemName: "flag.checkered")
-                                    .foregroundStyle(.blue)
-                                Text("ETA: \(routeInfo.etaText)")
-                                    .font(.subheadline)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                    
-                    // Turn-by-turn directions
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Directions")
-                            .font(.headline)
-                            .padding(.horizontal)
-                            .padding(.bottom, 8)
-                        
-                        ForEach(Array(routeInfo.steps.enumerated()), id: \.offset) { index, step in
-                            VStack(alignment: .leading, spacing: 0) {
-                                HStack(alignment: .top, spacing: 12) {
-                                    // Step number
-                                    ZStack {
-                                        Circle()
-                                            .fill(index == 0 ? Color.green : (index == routeInfo.steps.count - 1 ? Color.red : Color.blue))
-                                            .frame(width: 32, height: 32)
-                                        
-                                        if index == 0 {
-                                            Image(systemName: "location.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.white)
-                                        } else if index == routeInfo.steps.count - 1 {
-                                            Image(systemName: "flag.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.white)
-                                        } else {
-                                            Text("\(index)")
-                                                .font(.caption.bold())
-                                                .foregroundStyle(.white)
-                                        }
-                                    }
-                                    
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(step.instructions.isEmpty ? "Continue on route" : step.instructions)
-                                            .font(.body)
-                                        
-                                        if step.distance > 0 {
-                                            let formatter = MKDistanceFormatter()
-                                            formatter.unitStyle = .abbreviated
-                                            Text(formatter.string(fromDistance: step.distance))
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .padding(.horizontal)
-                                .padding(.vertical, 12)
-                                
-                                if index < routeInfo.steps.count - 1 {
-                                    Divider()
-                                        .padding(.leading, 56)
-                                }
-                            }
-                        }
-                    }
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    .shadow(radius: 2)
+                    routeSummarySection
+                    directionsListSection
                 }
                 .padding()
             }
@@ -1148,5 +1059,124 @@ struct DirectionsSheet: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Route Summary
+    
+    private var routeSummarySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Route to \(assignment.label ?? "Assignment")")
+                .font(.title2.bold())
+            
+            HStack(spacing: 20) {
+                routeStatItem(icon: "arrow.triangle.branch", text: routeInfo.distanceText)
+                routeStatItem(icon: "clock", text: routeInfo.travelTimeText)
+                routeStatItem(icon: "flag.checkered", text: "ETA: \(routeInfo.etaText)")
+            }
+            .padding(.vertical, 4)
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+    
+    private func routeStatItem(icon: String, text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundStyle(.blue)
+            Text(text)
+                .font(.subheadline)
+        }
+    }
+    
+    // MARK: - Directions List
+    
+    private var directionsListSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Directions")
+                .font(.headline)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            
+            ForEach(Array(routeInfo.steps.enumerated()), id: \.offset) { index, step in
+                directionStepRow(index: index, step: step)
+            }
+        }
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(radius: 2)
+    }
+    
+    private func directionStepRow(index: Int, step: MKRoute.Step) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                stepNumberBadge(index: index)
+                stepInstructions(step: step)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            
+            if index < routeInfo.steps.count - 1 {
+                Divider()
+                    .padding(.leading, 56)
+            }
+        }
+    }
+    
+    private func stepNumberBadge(index: Int) -> some View {
+        ZStack {
+            Circle()
+                .fill(stepColor(for: index))
+                .frame(width: 32, height: 32)
+            
+            stepIcon(for: index)
+        }
+    }
+    
+    private func stepColor(for index: Int) -> Color {
+        if index == 0 {
+            return .green
+        } else if index == routeInfo.steps.count - 1 {
+            return .red
+        } else {
+            return .blue
+        }
+    }
+    
+    @ViewBuilder
+    private func stepIcon(for index: Int) -> some View {
+        if index == 0 {
+            Image(systemName: "location.fill")
+                .font(.caption)
+                .foregroundStyle(.white)
+        } else if index == routeInfo.steps.count - 1 {
+            Image(systemName: "flag.fill")
+                .font(.caption)
+                .foregroundStyle(.white)
+        } else {
+            Text("\(index)")
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+        }
+    }
+    
+    private func stepInstructions(step: MKRoute.Step) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(step.instructions.isEmpty ? "Continue on route" : step.instructions)
+                .font(.body)
+            
+            if step.distance > 0 {
+                Text(formatDistance(step.distance))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private func formatDistance(_ distance: CLLocationDistance) -> String {
+        let formatter = MKDistanceFormatter()
+        formatter.unitStyle = .abbreviated
+        return formatter.string(fromDistance: distance)
     }
 }
