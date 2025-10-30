@@ -267,8 +267,9 @@ struct MapOperationView: View {
                         }
                     }
                     
-                    // Route polylines - only show for current user's assignment (not for case agent)
-                    if !isCaseAgent, let myAssignment = currentUserAssignment {
+                    // Route polylines - show for current user's assignment
+                    // Even if user is case agent, they can still have an assignment and need navigation
+                    if let myAssignment = currentUserAssignment {
                         if let routeInfo = routeService.getRoute(for: myAssignment.id) {
                             let _ = print("🔵 Drawing route polyline for assignment \(myAssignment.id)")
                             let _ = print("   Polyline points: \(routeInfo.polyline.pointCount)")
@@ -279,11 +280,7 @@ struct MapOperationView: View {
                             let _ = print("   Available routes: \(routeService.activeRoutes.keys.map { $0.uuidString })")
                         }
                     } else {
-                        if isCaseAgent {
-                            let _ = print("⚠️ Not showing route - user is case agent")
-                        } else {
-                            let _ = print("⚠️ Not showing route - no current user assignment")
-                        }
+                        let _ = print("⚠️ Not showing route - no current user assignment")
                 }
             }
             .mapStyle(mapStyle)
