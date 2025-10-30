@@ -215,19 +215,18 @@ struct InAppNavigationView: View {
         print("   From: (\(userLocation.coordinate.latitude), \(userLocation.coordinate.longitude))")
         print("   To: (\(assignment.coordinate.latitude), \(assignment.coordinate.longitude))")
         
-        await routeService.calculateRoute(
-            for: assignment.id,
-            from: userLocation.coordinate,
-            to: assignment.coordinate
-        )
-        
-        if let route = routeService.getRoute(for: assignment.id) {
+        do {
+            let routeInfo = try await routeService.calculateRoute(
+                from: userLocation.coordinate,
+                to: assignment
+            )
+            
             print("✅ Route calculated successfully")
-            print("   Distance: \(route.distanceText)")
-            print("   Travel time: \(route.travelTimeText)")
-            print("   Steps: \(route.steps.count)")
-        } else {
-            print("❌ Route calculation failed - no route returned")
+            print("   Distance: \(routeInfo.distanceText)")
+            print("   Travel time: \(routeInfo.travelTimeText)")
+            print("   Steps: \(routeInfo.steps.count)")
+        } catch {
+            print("❌ Route calculation failed: \(error.localizedDescription)")
         }
     }
     
