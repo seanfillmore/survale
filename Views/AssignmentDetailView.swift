@@ -4,9 +4,11 @@ import MapKit
 struct AssignmentDetailView: View {
     let assignment: AssignedLocation
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.navigateToMap) private var navigateToMap
     @StateObject private var locationService = LocationService.shared
+    @StateObject private var routeService = RouteService.shared
     @State private var cameraPosition: MapCameraPosition
-    @State private var showingInAppNavigation = false
+    @State private var isCalculatingRoute = false
     
     init(assignment: AssignedLocation) {
         self.assignment = assignment
@@ -109,14 +111,21 @@ struct AssignmentDetailView: View {
                     
                     // Actions
                     VStack(spacing: 12) {
-                        // In-app navigation button
+                        // Navigation button - switches to Map tab and calculates route
                         Button {
-                            showingInAppNavigation = true
+                            Task {
+                                await startNavigation()
+                            }
                         } label: {
                             HStack {
-                                Image(systemName: "map.fill")
-                                    .font(.title3)
-                                Text("Start Navigation")
+                                if isCalculatingRoute {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Image(systemName: "map.fill")
+                                        .font(.title3)
+                                }
+                                Text(isCalculatingRoute ? "Calculating Route..." : "Start Navigation")
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
@@ -125,6 +134,7 @@ struct AssignmentDetailView: View {
                             .foregroundStyle(.white)
                             .cornerRadius(12)
                         }
+                        .disabled(isCalculatingRoute)
                         
                         // Status buttons
                         if assignment.status == .assigned {
@@ -188,9 +198,46 @@ struct AssignmentDetailView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $showingInAppNavigation) {
-            InAppNavigationView(assignment: assignment)
+    }
+    
+    // MARK: - Navigation
+    
+    private func startNavigation() async {
+        guard let userLocation = locationService.lastLocation else {
+            print("⚠️ Cannot start navigation - no user location")
+            return
         }
+        
+        isCalculatingRoute = true
+        
+        print("🗺️ Starting navigation to: \(assignment.label ?? "Unknown")")
+        print("   From: (\(userLocation.coordinate.latitude), \(userLocation.coordinate.longitude))")
+        print("   To: (\(assignment.coordinate.latitude), \(assignment.coordinate.longitude))")
+        
+        do {
+            let routeInfo = try await routeService.calculateRoute(
+                from: userLocation.coordinate,
+                to: assignment
+            )
+            
+            print("✅ Route calculated successfully")
+            print("   Distance: \(routeInfo.distanceText)")
+            print("   Travel time: \(routeInfo.travelTimeText)")
+            
+            // Switch to Map tab - the map will automatically show the route
+            navigateToMap(MapNavigationTarget(
+                coordinate: assignment.coordinate,
+                label: assignment.label ?? "Your Assignment"
+            ))
+            
+            // Dismiss this view so user sees the map
+            dismiss()
+            
+        } catch {
+            print("❌ Route calculation failed: \(error.localizedDescription)")
+        }
+        
+        isCalculatingRoute = false
     }
     
     private func acknowledgeAssignment() async {
