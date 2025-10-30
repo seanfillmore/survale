@@ -1151,7 +1151,7 @@ final class SupabaseRPCService: @unchecked Sendable {
     nonisolated func getTeamRoster() async throws -> [TeamMember] {
         struct Response: Decodable {
             let id: String
-            let full_name: String
+            let full_name: String?  // Made optional - can be NULL in database
             let email: String
             let callsign: String?
             let in_operation: Bool
@@ -1163,7 +1163,7 @@ final class SupabaseRPCService: @unchecked Sendable {
             .execute()
             .value
         
-        print("🔄 Loaded \(responses.count) team members")
+        print("🔄 Loaded \(responses.count) team members from database")
         
         return responses.compactMap { response in
             guard let userId = UUID(uuidString: response.id) else {
@@ -1173,9 +1173,22 @@ final class SupabaseRPCService: @unchecked Sendable {
             
             let operationId = response.operation_id.flatMap { UUID(uuidString: $0) }
             
+            // Provide fallback for null full_name: use email or callsign
+            let displayName: String
+            if let fullName = response.full_name, !fullName.isEmpty {
+                displayName = fullName
+            } else if let callsign = response.callsign, !callsign.isEmpty {
+                displayName = callsign
+            } else {
+                // Use email username (before @) as fallback
+                displayName = response.email.components(separatedBy: "@").first ?? response.email
+            }
+            
+            print("   👤 Team member: \(displayName) (\(response.email))")
+            
             return TeamMember(
                 id: userId,
-                fullName: response.full_name,
+                fullName: displayName,
                 email: response.email,
                 callsign: response.callsign,
                 inOperation: response.in_operation,
