@@ -28,6 +28,7 @@
 		4525B9B82EB069B2001051FB /* InfoDetailRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9AF2EB069B2001051FB /* InfoDetailRow.swift */; };
 		4525B9EA2EB3014C001051FB /* ChatExportFilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */; };
 		4525B9EC2EB301B4001051FB /* ChatExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9EB2EB301B4001051FB /* ChatExportService.swift */; };
+		4525B9ED2EB30500001051FB /* ChatExportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4525B9EE2EB30500001051FB /* ChatExportModels.swift */; };
 		4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */; };
 		4532AE3F2EA5ABE200649F04 /* TargetImageGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */; };
 		4532AE412EA5ABEE00649F04 /* TargetImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */; };
@@ -89,6 +90,7 @@
 		4525B9B32EB069B2001051FB /* TeamMemberInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamMemberInfoSheet.swift; sourceTree = "<group>"; };
 		4525B9E92EB3014C001051FB /* ChatExportFilterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportFilterView.swift; sourceTree = "<group>"; };
 		4525B9EB2EB301B4001051FB /* ChatExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportService.swift; sourceTree = "<group>"; };
+		4525B9EE2EB30500001051FB /* ChatExportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatExportModels.swift; sourceTree = "<group>"; };
 		4532AE3C2EA5AB4300649F04 /* SupabaseStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseStorageService.swift; sourceTree = "<group>"; };
 		4532AE3E2EA5ABE200649F04 /* TargetImageGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImageGalleryView.swift; sourceTree = "<group>"; };
 		4532AE402EA5ABEE00649F04 /* TargetImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetImagePicker.swift; sourceTree = "<group>"; };
@@ -254,6 +256,7 @@
 		45B42B4D2EA329A400DF32CD /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				4525B9EE2EB30500001051FB /* ChatExportModels.swift */,
 				45107E732EAD636700E337C9 /* AssignmentModels.swift */,
 				45B42B5C2EA3DDD400DF32CD /* OpTargetModels.swift */,
 				45B42B4E2EA329B100DF32CD /* OperationModels.swift */,
@@ -344,6 +347,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4525B9ED2EB30500001051FB /* ChatExportModels.swift in Sources */,
 				45B42B512EA33BEA00DF32CD /* OperationModels.swift in Sources */,
 				45107E9C2EAF229700E337C9 /* SplashView.swift in Sources */,
 				4532AE3D2EA5AB4300649F04 /* SupabaseStorageService.swift in Sources */,
