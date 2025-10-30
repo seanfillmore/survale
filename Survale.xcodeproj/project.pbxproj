@@ -13,7 +13,6 @@
 		45107E7A2EADA59D00E337C9 /* AssignmentBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E792EADA59D00E337C9 /* AssignmentBanner.swift */; };
 		45107E7C2EADA5E400E337C9 /* AssignmentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E7B2EADA5E400E337C9 /* AssignmentDetailView.swift */; };
 		45107E7E2EAED55D00E337C9 /* RouteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E7D2EAED55C00E337C9 /* RouteService.swift */; };
-		45107E802EAED59F00E337C9 /* InAppNavigationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */; };
 		45107E882EAEF10D00E337C9 /* TransferOperationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */; };
 		45107E9C2EAF229700E337C9 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107E9B2EAF229700E337C9 /* SplashView.swift */; };
 		45107EA12EAF2A9700E337C9 /* OperationDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */; };
@@ -76,7 +75,6 @@
 		45107E792EADA59D00E337C9 /* AssignmentBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignmentBanner.swift; sourceTree = "<group>"; };
 		45107E7B2EADA5E400E337C9 /* AssignmentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignmentDetailView.swift; sourceTree = "<group>"; };
 		45107E7D2EAED55C00E337C9 /* RouteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteService.swift; sourceTree = "<group>"; };
-		45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppNavigationView.swift; sourceTree = "<group>"; };
 		45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferOperationSheet.swift; sourceTree = "<group>"; };
 		45107E9B2EAF229700E337C9 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		45107EA02EAF2A9700E337C9 /* OperationDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationDataCache.swift; sourceTree = "<group>"; };
@@ -208,7 +206,6 @@
 				45107EA42EAF9BAE00E337C9 /* AddressSearchField.swift */,
 				45107E9B2EAF229700E337C9 /* SplashView.swift */,
 				45107E872EAEF10D00E337C9 /* TransferOperationSheet.swift */,
-				45107E7F2EAED59F00E337C9 /* InAppNavigationView.swift */,
 				45107E7B2EADA5E400E337C9 /* AssignmentDetailView.swift */,
 				45107E792EADA59D00E337C9 /* AssignmentBanner.swift */,
 				45107E772EAD64A000E337C9 /* AssignLocationSheet.swift */,
@@ -374,7 +371,6 @@
 				45B42B3D2EA303ED00DF32CD /* SignUpView.swift in Sources */,
 				4532AE432EA5DDCF00649F04 /* ActiveOperationDetailView.swift in Sources */,
 				45B42B612EA3E98100DF32CD /* Operation.swift in Sources */,
-				45107E802EAED59F00E337C9 /* InAppNavigationView.swift in Sources */,
 				45B42B652EA3FF6C00DF32CD /* SupabaseRPCService.swift in Sources */,
 				45B42B212EA2E13D00DF32CD /* MapOperationView.swift in Sources */,
 				45B42B6F2EA593AB00DF32CD /* EditOperationView.swift in Sources */,
