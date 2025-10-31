@@ -147,9 +147,16 @@ final class RealtimeService: ObservableObject {
               case .double(let lat) = record["lat"],          // Database: 'lat' not 'latitude'
               case .double(let lon) = record["lon"],          // Database: 'lon' not 'longitude'
               case .double(let accuracy) = record["accuracy_m"],  // Database: 'accuracy_m' not 'accuracy'
-              case .string(let timestampStr) = record["ts"],  // Database: 'ts' not 'timestamp'
-              let timestamp = ISO8601DateFormatter().date(from: timestampStr) else {
+              case .string(let timestampStr) = record["ts"] else {  // Database: 'ts' not 'timestamp'
             print("Failed to parse location insert")
+            return
+        }
+        
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        guard let timestamp = dateFormatter.date(from: timestampStr) else {
+            print("Failed to parse timestamp: \(timestampStr)")
             return
         }
         
@@ -226,13 +233,16 @@ final class RealtimeService: ObservableObject {
             
             print("📍 Polled \(records.count) recent locations from database")
             
+            let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            
             for record in records {
                 guard let userId = UUID(uuidString: record.user_id) else {
                     print("⚠️ Skipping record with invalid user_id: \(record.user_id)")
                     continue
                 }
                 
-                guard let timestamp = ISO8601DateFormatter().date(from: record.ts) else {
+                guard let timestamp = dateFormatter.date(from: record.ts) else {
                     print("⚠️ Skipping record with invalid timestamp: \(record.ts)")
                     continue
                 }
