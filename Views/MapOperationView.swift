@@ -979,6 +979,36 @@ struct MapOperationView: View {
             print("❌ Failed to update route: \(error)")
         }
     }
+    
+    // MARK: - Polling for location updates
+    
+    private func startPolling() {
+        // Stop any existing timer
+        stopPolling()
+        
+        guard let operationId = appState.activeOperationID else { return }
+        
+        print("🔄 Starting location polling for operation \(operationId)")
+        
+        // Poll immediately
+        Task {
+            await realtimeService.pollLocations(operationId: operationId)
+        }
+        
+        // Then poll every 5 seconds
+        locationPollingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            guard let self = self,
+                  let operationId = appState.activeOperationID else { return }
+            Task { @MainActor in
+                await self.realtimeService.pollLocations(operationId: operationId)
+            }
+        }
+    }
+    
+    private func stopPolling() {
+        locationPollingTimer?.invalidate()
+        locationPollingTimer = nil
+    }
 }
 
 // MARK: - Vehicle Marker
@@ -1191,35 +1221,5 @@ struct DirectionsSheet: View {
         let formatter = MKDistanceFormatter()
         formatter.unitStyle = .abbreviated
         return formatter.string(fromDistance: distance)
-    }
-    
-    // MARK: - Polling for location updates
-    
-    private func startPolling() {
-        // Stop any existing timer
-        stopPolling()
-        
-        guard let operationId = appState.activeOperationID else { return }
-        
-        print("🔄 Starting location polling for operation \(operationId)")
-        
-        // Poll immediately
-        Task {
-            await realtimeService.pollLocations(operationId: operationId)
-        }
-        
-        // Then poll every 5 seconds
-        locationPollingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            guard let self = self,
-                  let operationId = appState.activeOperationID else { return }
-            Task { @MainActor in
-                await self.realtimeService.pollLocations(operationId: operationId)
-            }
-        }
-    }
-    
-    private func stopPolling() {
-        locationPollingTimer?.invalidate()
-        locationPollingTimer = nil
     }
 }
