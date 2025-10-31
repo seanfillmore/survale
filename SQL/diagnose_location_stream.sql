@@ -94,18 +94,17 @@ GROUP BY o.id, o.name
 ORDER BY o.created_at DESC;
 
 -- ============================================
--- STEP 7: For a specific operation (copy/paste this query separately)
--- Replace INSERT_OPERATION_ID_HERE with the actual UUID from STEP 2
+-- STEP 7: Locations for specific operation
 -- ============================================
--- SELECT 
---     ls.*,
---     u.email,
---     u.callsign,
---     u.full_name,
---     o.name as operation_name
--- FROM public.locations_stream ls
--- LEFT JOIN public.users u ON ls.user_id = u.id
--- LEFT JOIN public.operations o ON ls.operation_id = o.id
--- WHERE ls.operation_id = INSERT_OPERATION_ID_HERE::uuid
--- ORDER BY ls.ts DESC
--- LIMIT 50;
+SELECT 
+    ls.*,
+    u.email,
+    u.callsign,
+    u.full_name,
+    o.name as operation_name
+FROM public.locations_stream ls
+LEFT JOIN public.users u ON ls.user_id = u.id
+LEFT JOIN public.operations o ON ls.operation_id = o.id
+WHERE ls.operation_id = 'b1c1ace9-6422-4059-87a3-b49d27f85a3e'::uuid
+ORDER BY ls.ts DESC
+LIMIT 50;
