@@ -996,11 +996,10 @@ struct MapOperationView: View {
         }
         
         // Then poll every 5 seconds
-        locationPollingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            guard let self = self,
-                  let operationId = appState.activeOperationID else { return }
+        locationPollingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
             Task { @MainActor in
-                await self.realtimeService.pollLocations(operationId: operationId)
+                guard let operationId = appState.activeOperationID else { return }
+                await realtimeService.pollLocations(operationId: operationId)
             }
         }
     }
