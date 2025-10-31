@@ -233,6 +233,14 @@ final class RealtimeService: ObservableObject {
             
             print("📍 Polled \(records.count) recent locations from database")
             
+            // Debug: Show unique users in the records
+            let uniqueUserIds = Set(records.map { $0.user_id })
+            print("   👥 Unique users in records: \(uniqueUserIds.count)")
+            for userId in uniqueUserIds {
+                let count = records.filter { $0.user_id == userId }.count
+                print("      - \(userId): \(count) location(s)")
+            }
+            
             let dateFormatter = ISO8601DateFormatter()
             dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             
