@@ -730,6 +730,11 @@ struct ActiveOperationDetailView: View {
     private func refreshData() async {
         print("🔄 Refreshing operation data...")
         
+        // First reload operations to get latest membership status
+        if let userID = appState.currentUserID {
+            await OperationStore.shared.loadOperations(for: userID)
+        }
+        
         // Check membership status
         let memberOperationIds = OperationStore.shared.memberOperationIds
         let isUserMember = memberOperationIds.contains(operation.id)
