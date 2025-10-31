@@ -844,10 +844,11 @@ struct MapOperationView: View {
         // Now do the heavy lifting in background
         await subscribeToRealtimeUpdates()
         
-        // Load assignments
+        // Load assignments and team members
         if let operationId = appState.activeOperationID {
             await assignmentService.fetchAssignments(for: operationId)
             await assignmentService.subscribeToAssignments(operationId: operationId)
+            await loadTeamMembers()
         }
         
         // Calculate route for user's active assignment

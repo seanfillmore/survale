@@ -67,7 +67,6 @@ final class RealtimeService: ObservableObject {
     // MARK: - Location Channel
     
     /// Subscribe to location updates for an operation
-    /// Note: Swift SDK doesn't support postgres_changes yet, so this is a placeholder
     func subscribeToLocations(
         operationId: UUID,
         onLocationUpdate: @escaping (LocationPoint) -> Void
@@ -83,19 +82,33 @@ final class RealtimeService: ObservableObject {
             await existing.unsubscribe()
         }
         
-        // Create channel (for future use when SDK supports postgres_changes)
+        // Create channel with postgres changes subscription
         let channel = client.channel(channelName)
+        
+        // Subscribe to INSERT events on locations_stream table for this operation
+        _ = channel.onPostgresChange(
+            InsertAction.self,
+            schema: "public",
+            table: "locations_stream",
+            filter: "operation_id=eq.\(operationId.uuidString)"
+        ) { [weak self] change in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                print("📍 New location received via realtime")
+                await self.handleLocationInsert(change.record)
+            }
+        }
         
         do {
             try await channel.subscribeWithError()
             self.locationChannel = channel
             self.isConnected = true
+            print("✅ RealtimeService: Location subscription active for operation: \(operationId)")
         } catch {
             print("❌ Location channel subscription error: \(error)")
+            throw error
         }
-        
-        // Note: Actual real-time updates will be handled via polling in MapOperationView
-        print("✅ RealtimeService: Location channel created (polling-based)")
     }
     
     /// Publish location update (now handled by RPC -> database insert -> realtime notification)
