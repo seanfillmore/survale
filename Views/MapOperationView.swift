@@ -1040,7 +1040,7 @@ struct VehicleMarker: View {
         case .suv:
             return "suv.side.fill"
         case .pickup:
-            return "pickup.side.fill"
+            return "car.fill"  // pickup.side.fill doesn't exist - use generic car
         }
     }
     
