@@ -198,6 +198,72 @@ final class RealtimeService: ObservableObject {
         locationUpdateHandler?(locationPoint)
     }
     
+    // MARK: - Polling (Fallback for when postgres_changes not working)
+    
+    /// Fetch recent locations from database (polling fallback)
+    func pollLocations(operationId: UUID) async {
+        print("🔄 Polling locations for operation \(operationId)")
+        
+        do {
+            struct LocationRecord: Decodable {
+                let user_id: String
+                let ts: String
+                let lat: Double
+                let lon: Double
+                let accuracy_m: Double
+                let speed_mps: Double?
+                let heading_deg: Double?
+            }
+            
+            let records: [LocationRecord] = try await client
+                .from("locations_stream")
+                .select("user_id,ts,lat,lon,accuracy_m,speed_mps,heading_deg")
+                .eq("operation_id", value: operationId.uuidString)
+                .gt("ts", value: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-120))) // Last 2 minutes
+                .order("ts", ascending: false)
+                .execute()
+                .value
+            
+            print("📍 Polled \(records.count) recent locations from database")
+            
+            for record in records {
+                guard let userId = UUID(uuidString: record.user_id),
+                      let timestamp = ISO8601DateFormatter().date(from: record.ts) else {
+                    continue
+                }
+                
+                let locationPoint = LocationPoint(
+                    userId: userId,
+                    operationId: operationId,
+                    timestamp: timestamp,
+                    latitude: record.lat,
+                    longitude: record.lon,
+                    accuracy: record.accuracy_m,
+                    speed: record.speed_mps,
+                    heading: record.heading_deg
+                )
+                
+                // Update member location state
+                var memberLocation = memberLocations[userId] ?? MemberLocation(id: userId)
+                memberLocation.lastLocation = locationPoint
+                memberLocation.isActive = true
+                memberLocation.lastUpdate = Date()
+                
+                // Populate user data if available and not already set
+                if memberLocation.user == nil, let user = teamMembers[userId] {
+                    memberLocation.user = user
+                    print("✅ RealtimeService: Populated user data for \(userId)")
+                }
+                
+                memberLocations[userId] = memberLocation
+            }
+            
+            print("✅ Updated \(memberLocations.count) member locations from polling")
+        } catch {
+            print("❌ Failed to poll locations: \(error)")
+        }
+    }
+    
     // MARK: - Chat Channel
     
     /// Subscribe to chat messages for an operation

@@ -30,6 +30,9 @@ struct MapOperationView: View {
     @State private var assignmentData: AssignmentData?
     @State private var teamMembers: [User] = []
     
+    // Polling timer for location updates
+    @State private var locationPollingTimer: Timer?
+    
     // Info card state
     @State private var selectedTarget: OpTarget?
     @State private var selectedStaging: StagingPoint?
@@ -88,6 +91,9 @@ struct MapOperationView: View {
             }
             .onAppear {
                 handleViewAppear()
+            }
+            .onDisappear {
+                stopPolling()
             }
             .onChange(of: appState.activeOperationID) { _, _ in
                 handleOperationChange()
@@ -863,6 +869,9 @@ struct MapOperationView: View {
         hapticGenerator.prepare()
         warningHaptic.prepare()
         
+        // Start polling for location updates
+        startPolling()
+        
         // Allow view to render first, then load data
         Task {
             // Tiny delay to let tab animation complete
@@ -1182,5 +1191,35 @@ struct DirectionsSheet: View {
         let formatter = MKDistanceFormatter()
         formatter.unitStyle = .abbreviated
         return formatter.string(fromDistance: distance)
+    }
+    
+    // MARK: - Polling for location updates
+    
+    private func startPolling() {
+        // Stop any existing timer
+        stopPolling()
+        
+        guard let operationId = appState.activeOperationID else { return }
+        
+        print("🔄 Starting location polling for operation \(operationId)")
+        
+        // Poll immediately
+        Task {
+            await realtimeService.pollLocations(operationId: operationId)
+        }
+        
+        // Then poll every 5 seconds
+        locationPollingTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            guard let self = self,
+                  let operationId = appState.activeOperationID else { return }
+            Task { @MainActor in
+                await self.realtimeService.pollLocations(operationId: operationId)
+            }
+        }
+    }
+    
+    private func stopPolling() {
+        locationPollingTimer?.invalidate()
+        locationPollingTimer = nil
     }
 }
