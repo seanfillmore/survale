@@ -226,8 +226,8 @@ final class RealtimeService: ObservableObject {
                 .from("locations_stream")
                 .select("user_id,ts,lat,lon,accuracy_m,speed_mps,heading_deg")
                 .eq("operation_id", value: operationId.uuidString)
-                .gt("ts", value: ISO8601DateFormatter().string(from: Date().addingTimeInterval(-120))) // Last 2 minutes
                 .order("ts", ascending: false)
+                .limit(100)  // Get last 100 locations regardless of time
                 .execute()
                 .value
             
