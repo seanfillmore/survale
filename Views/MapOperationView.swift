@@ -167,7 +167,7 @@ struct MapOperationView: View {
                                     VehicleMarker(
                                         vehicleType: memberLocation.vehicleType,
                                         color: memberLocation.vehicleColor ?? "gray",
-                                        heading: lastLocation.heading,
+                                        heading: nil,
                                         isCurrentUser: false
                                     )
                                 }
