@@ -27,9 +27,19 @@ final class RealtimeService: ObservableObject {
     private var locationUpdateHandler: ((LocationPoint) -> Void)?
     private var messageReceivedHandler: ((ChatMessage) -> Void)?
     
+    // Cache of team members for populating MemberLocation user data
+    private var teamMembers: [UUID: User] = [:]
+    
     private init() {
         // Use shared client instance to reduce overhead
         self.client = SupabaseClientManager.shared.client
+    }
+    
+    // MARK: - Team Members Management
+    
+    func setTeamMembers(_ members: [User]) {
+        teamMembers = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
+        print("✅ RealtimeService: Cached \(members.count) team members")
     }
     
     // MARK: - Helpers
@@ -175,6 +185,13 @@ final class RealtimeService: ObservableObject {
         memberLocation.lastLocation = locationPoint
         memberLocation.isActive = true
         memberLocation.lastUpdate = Date()
+        
+        // Populate user data if available and not already set
+        if memberLocation.user == nil, let user = teamMembers[userId] {
+            memberLocation.user = user
+            print("✅ RealtimeService: Populated user data for \(userId)")
+        }
+        
         memberLocations[userId] = memberLocation
         
         // Call handler

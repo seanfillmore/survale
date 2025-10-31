@@ -788,6 +788,9 @@ struct MapOperationView: View {
             await MainActor.run {
                 self.teamMembers = members
                 print("✅ MapOperationView: Updated local teamMembers array to \(members.count) members")
+                
+                // Update RealtimeService with team members for populating MemberLocation user data
+                realtimeService.setTeamMembers(members)
             }
         } catch {
             print("❌ MapOperationView: Failed to load team members: \(error)")
