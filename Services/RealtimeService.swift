@@ -227,8 +227,13 @@ final class RealtimeService: ObservableObject {
             print("📍 Polled \(records.count) recent locations from database")
             
             for record in records {
-                guard let userId = UUID(uuidString: record.user_id),
-                      let timestamp = ISO8601DateFormatter().date(from: record.ts) else {
+                guard let userId = UUID(uuidString: record.user_id) else {
+                    print("⚠️ Skipping record with invalid user_id: \(record.user_id)")
+                    continue
+                }
+                
+                guard let timestamp = ISO8601DateFormatter().date(from: record.ts) else {
+                    print("⚠️ Skipping record with invalid timestamp: \(record.ts)")
                     continue
                 }
                 
@@ -256,6 +261,7 @@ final class RealtimeService: ObservableObject {
                 }
                 
                 memberLocations[userId] = memberLocation
+                print("✅ Updated location for user \(userId)")
             }
             
             print("✅ Updated \(memberLocations.count) member locations from polling")
